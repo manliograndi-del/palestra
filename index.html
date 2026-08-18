@@ -150,27 +150,41 @@ input{font-family:inherit}
    Dati nella memoria del telefono. Niente rete, niente account.
    ============================================================ */
 
+/* Ordine chiesto da Manlio il 2026-08-18: una sola attività aerobica in
+   apertura (la camminata), poi tutti i pesi di fila senza interruzioni, poi
+   15 minuti di cyclette in chiusura. La bici ellittica di metà seduta è
+   uscita da entrambi i giorni. Le serie di pesi non sono state toccate. */
 var SCHEDA = {
   1: { nome:"Giorno 1", es:[
     {n:"Tapis roulant", t:"cardio", min:15, nota:"Aumenta gradualmente la pendenza"},
     {n:"Abductor", t:"serie", set:4, rip:20, rec:60},
     {n:"Adductor", t:"serie", set:3, rip:12, rec:60},
     {n:"Leg press", t:"serie", set:4, rip:10, rec:60},
-    {n:"Bici ellittica", t:"cardio", min:10},
     {n:"Chest press", t:"serie", set:3, rip:12, rec:60},
     {n:"Low row", t:"serie", set:4, rip:15, rec:60},
     {n:"Cyclette", t:"cardio", min:15}
   ]},
   2: { nome:"Giorno 2", es:[
-    {n:"Cyclette", t:"cardio", min:10, nota:"Aumenta gradualmente la resistenza"},
+    {n:"Camminata in salita", t:"cardio", min:20, nota:"Aumenta gradualmente la pendenza"},
     {n:"Chest incline", t:"serie", set:3, rip:10, rec:60},
     {n:"Upper back", t:"serie", set:3, rip:10, rec:60},
     {n:"Vertical traction", t:"serie", set:4, rip:12, rec:60},
-    {n:"Bici ellittica", t:"cardio", min:10},
     {n:"Leg extension", t:"serie", set:3, rip:10, rec:60},
     {n:"Leg curl", t:"serie", set:3, rip:12, rec:60},
-    {n:"Camminata in salita", t:"cardio", min:20}
+    {n:"Cyclette", t:"cardio", min:15}
   ]}
+};
+
+/* Le sedute salvate puntano agli esercizi per posizione, non per nome: dopo il
+   riordino punterebbero all'esercizio sbagliato. Questa tabella rinumera una
+   volta sola le sedute vecchie. Le posizioni che mancano sono gli esercizi
+   usciti dalla scheda: quelle spunte si perdono, non hanno più un posto dove
+   stare. Serie, volume e totali già archiviati non cambiano. */
+var SCHEDA_V=2;
+var RINUMERA={
+  1:{0:0, 1:1, 2:2, 3:3, 5:4, 6:5, 7:6},   /* 4 era la bici ellittica */
+  2:{1:1, 2:2, 3:3, 5:4, 6:5, 7:0}         /* 0 era la cyclette iniziale, 4 la bici ellittica,
+                                              7 la camminata finale che ora apre la seduta */
 };
 
 var K_CFG="palestra.config", K_IDX="palestra.indice", K_S="palestra.s.";
@@ -194,7 +208,7 @@ var S={
   pesi:{},            // nome esercizio -> kg di oggi
   pesiPrec:{},        // ultimi kg registrati
   cardio:{},          // indice -> true se completato
-  indice:{}, riposo:60, schermo:true, ultimo:null,
+  indice:{}, riposo:60, schermo:true, ultimo:null, schedaV:SCHEDA_V,
   msg:null, spia:"", focus:null, aperto:null, apertoS:null, export:"", importa:""
 };
 
@@ -204,7 +218,9 @@ function avvia(){
   if(cfg){
     S.pesiPrec=cfg.pesiPrec||{}; S.riposo=cfg.riposo||60;
     S.schermo=cfg.schermo!==false; S.ultimo=cfg.ultimo||null;
+    S.schedaV=cfg.schedaV||1;   /* senza il numero è una configurazione di prima del riordino */
   }
+  migraSedute();
   S.indice=leggi(K_IDX,{})||{};
   var s=leggi(K_S+S.data,null);
   if(s){ S.giorno=s.giorno||1; S.fatte=s.fatte||{}; S.pesi=s.pesi||{}; S.cardio=s.cardio||{}; }
@@ -212,7 +228,43 @@ function avvia(){
   if(!memOk) S.msg="Questo browser non permette il salvataggio. Esci dalla navigazione privata.";
   render();
 }
-function salvaCfg(){ scrivi(K_CFG,{pesiPrec:S.pesiPrec,riposo:S.riposo,schermo:S.schermo,ultimo:S.ultimo}); }
+function salvaCfg(){ scrivi(K_CFG,{pesiPrec:S.pesiPrec,riposo:S.riposo,schermo:S.schermo,ultimo:S.ultimo,schedaV:S.schedaV}); }
+
+/* Rinumera le sedute salvate dopo il riordino della scheda. Gira una volta
+   sola: il numero di versione resta scritto in configurazione. Se ripartisse
+   una seconda volta sposterebbe di nuovo le spunte, quindi il numero va
+   salvato insieme a tutto il resto (vedi salvaCfg e ripristina). */
+function migraSedute(){
+  if(S.schedaV>=SCHEDA_V) return;
+  var chiavi=[];
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(k&&k.indexOf(K_S)===0) chiavi.push(k);
+    }
+  }catch(e){ return; }
+  chiavi.forEach(function(k){
+    var s=leggi(k,null); if(!s) return;
+    var m=RINUMERA[s.giorno||1]; if(!m) return;
+    var nf={}, nc={}, key, p, vecchio;
+    for(key in s.fatte){
+      if(!s.fatte[key]) continue;
+      p=key.split("-"); vecchio=Number(p[0]);
+      if(m[vecchio]===undefined) continue;      /* esercizio uscito dalla scheda */
+      nf[m[vecchio]+"-"+p[1]]=true;
+    }
+    for(key in s.cardio){
+      if(!s.cardio[key]) continue;
+      vecchio=Number(key);
+      if(m[vecchio]===undefined) continue;
+      nc[m[vecchio]]=true;
+    }
+    s.fatte=nf; s.cardio=nc;
+    scrivi(k,s);
+  });
+  S.schedaV=SCHEDA_V;
+  salvaCfg();
+}
 
 function totSerie(){var t=0;SCHEDA[S.giorno].es.forEach(function(e){if(e.t==="serie")t+=e.set;});return t;}
 function fatteN(){var n=0;for(var k in S.fatte)if(S.fatte[k])n++;return n;}
@@ -251,16 +303,22 @@ function avviaTimer(sec,etichetta){
   clearInterval(T.id); T.id=setInterval(tic,200); tic();
 }
 function tic(){
+  /* se per qualsiasi motivo la pagina non ha ancora i pezzi del timer, meglio
+     fermarsi che sollevare un errore ogni 200 ms e piantare tutto il resto */
+  var num=document.getElementById("t-num"), lin=document.getElementById("t-linea"),
+      box=document.getElementById("timer"), et=document.getElementById("t-et");
+  if(!num||!lin||!box||!et){ clearInterval(T.id); return; }
   var r=(T.fine-Date.now())/1000;
-  document.getElementById("t-num").textContent=mmss(Math.max(0,r));
-  document.getElementById("t-linea").style.width=Math.max(0,Math.min(100,(r/T.durata)*100))+"%";
+  num.textContent=mmss(Math.max(0,r));
+  lin.style.width=Math.max(0,Math.min(100,T.durata?(r/T.durata)*100:0))+"%";
   if(r<=0){
     clearInterval(T.id); T.att=false;
-    document.getElementById("timer").classList.add("finito");
-    document.getElementById("t-et").textContent="Vai con la prossima";
+    box.classList.add("finito");
+    et.textContent="Vai con la prossima";
     segnale();
     setTimeout(function(){
-      if(!T.att) document.getElementById("timer").classList.remove("su");
+      var b=document.getElementById("timer");
+      if(!T.att&&b) b.classList.remove("su");
     },8000);
   }
 }
@@ -292,18 +350,30 @@ var WL=null;
 function schermoAcceso(v){
   try{
     if(v && "wakeLock" in navigator){
-      navigator.wakeLock.request("screen").then(function(l){WL=l;}).catch(function(){});
-    } else if(WL){ WL.release(); WL=null; }
+      if(WL) return;                       /* già acceso, non accumularne un altro */
+      navigator.wakeLock.request("screen").then(function(l){
+        WL=l;
+        /* il telefono lo rilascia da solo quando la pagina va in secondo piano:
+           se non ce ne accorgessimo, al ritorno non lo richiederemmo più */
+        try{ l.addEventListener("release",function(){ WL=null; }); }catch(e){}
+      }).catch(function(){ WL=null; });
+    } else if(WL){ try{ WL.release(); }catch(e){} WL=null; }
   }catch(e){}
 }
-document.addEventListener("visibilitychange",function(){
-  if(!document.hidden){
-    if(S.schermo) schermoAcceso(true);
-    if(T.att) tic();
-    var d=oggiISO();
-    if(d!==S.data){ S.data=d; S.fatte={}; S.pesi={}; S.cardio={}; S.giorno=(S.ultimo===1)?2:1; render(); }
-  }
-});
+/* Al ritorno da schermo spento la pagina va ridisegnata sempre, non solo
+   quando è cambiato il giorno. Il telefono può sospendere o buttare via la
+   pagina mentre è in tasca: al risveglio restava com'era rimasta, a volte
+   vuota. Ridisegnarla la rimette in piedi in ogni caso. */
+function alRisveglio(){
+  if(document.hidden) return;
+  if(S.schermo) schermoAcceso(true);
+  var d=oggiISO();
+  if(d!==S.data){ S.data=d; S.fatte={}; S.pesi={}; S.cardio={}; S.giorno=(S.ultimo===1)?2:1; }
+  render();
+  if(T.att) tic();
+}
+document.addEventListener("visibilitychange",alRisveglio);
+window.addEventListener("pageshow",alRisveglio);
 
 /* ---------- render ---------- */
 function render(){
@@ -493,7 +563,7 @@ document.body.addEventListener("input",function(ev){
 
 /* ---------- backup ---------- */
 function raccogli(){
-  var o={versione:1,pesiPrec:S.pesiPrec,riposo:S.riposo,indice:S.indice,sedute:{}};
+  var o={versione:1,schedaV:S.schedaV,pesiPrec:S.pesiPrec,riposo:S.riposo,indice:S.indice,sedute:{}};
   for(var i=0;i<localStorage.length;i++){
     var k=localStorage.key(i);
     if(k&&k.indexOf(K_S)===0) o.sedute[k.slice(K_S.length)]=leggi(k,null);
@@ -516,7 +586,9 @@ function ripristina(){
     if(!d.sedute) throw new Error("formato");
     Object.keys(d.sedute).forEach(function(k){ scrivi(K_S+k,d.sedute[k]); });
     if(d.indice) scrivi(K_IDX,d.indice);
-    scrivi(K_CFG,{pesiPrec:d.pesiPrec||S.pesiPrec,riposo:d.riposo||S.riposo,schermo:S.schermo,ultimo:S.ultimo});
+    /* un backup senza schedaV è di prima del riordino: al prossimo avvio le sue
+       sedute vanno rinumerate, quindi si riparte da 1 */
+    scrivi(K_CFG,{pesiPrec:d.pesiPrec||S.pesiPrec,riposo:d.riposo||S.riposo,schermo:S.schermo,ultimo:S.ultimo,schedaV:d.schedaV||1});
     S.msg="Ripristinato. Ricarico…"; render();
     setTimeout(function(){location.reload();},900);
   }catch(e){ S.msg="Quel testo non è un backup valido."; render(); }
