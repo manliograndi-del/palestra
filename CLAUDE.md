@@ -15,7 +15,7 @@ Conseguenze operative:
 
 ## Cos'è
 
-App per seguire la scheda di allenamento in palestra. Spunta le serie mentre le fa,
+App per seguire il programma di allenamento in palestra. Spunta le serie mentre le fa,
 e a ogni serie completata parte da sola il recupero di un minuto. Registra i carichi
 e li ripropone la volta dopo.
 
@@ -30,20 +30,24 @@ serviva dalla cache l'app si apriva lo stesso, e la cosa poteva passare inosserv
 Redatta da Sofia Pilan, chinesiologa sportiva, per Virgin Active. È scritta nella
 costante `SCHEDA` dentro `index.html`. Due giorni alternati, recupero 1' fra le serie.
 
-**Riordinata il 2026-08-18 su richiesta di Manlio**: una sola attività aerobica in
-apertura (la camminata), poi tutti i pesi di fila, poi 15' di cyclette in chiusura. La
-bici ellittica di metà seduta è uscita da entrambi i giorni. Le serie di pesi non sono
-state toccate: i totali sono gli stessi di prima.
+**Un solo programma dal 2026-08-18**, chiesto da Manlio: lui in palestra fa tutto in
+una seduta sola, quindi i due giorni alternati non servivano. Prima erano Giorno 1 e
+Giorno 2, con un selettore in cima e l'alternanza automatica: **il selettore non c'è
+più**, `SCHEDA` ha la sola chiave `1` e `S.giorno` vale sempre 1.
 
-**Giorno 1** — Tapis roulant 15' (aumenta gradualmente la pendenza) · Abductor 4×20 ·
-Adductor 3×12 · Leg press 4×10 · Chest press 3×12 · Low row 4×15 · Cyclette 15'.
-Totale 18 serie.
+Struttura chiesta da lui: una sola attività aerobica in apertura (la camminata), tutti
+i pesi di fila in mezzo, 15' di cyclette in chiusura. La bici ellittica che stava a
+metà seduta è uscita.
 
-**Giorno 2** — Camminata in salita 20' (aumenta gradualmente la pendenza) ·
-Chest incline 3×10 · Upper back 3×10 · Vertical traction 4×12 · Leg extension 3×10 ·
-Leg curl 3×12 · Cyclette 15'. Totale 16 serie.
+**Il programma** — Tapis roulant 15' (aumenta gradualmente la pendenza) · Abductor 4×20 ·
+Adductor 3×12 · Leg press 4×10 · Chest press 3×12 · Low row 4×15 · Chest incline 3×10 ·
+Upper back 3×10 · Vertical traction 4×12 · Leg extension 3×10 · Leg curl 3×12 ·
+Cyclette 15'. **Totale 34 serie.**
 
-L'ordine originale della chinesiologa alternava i blocchi aerobici in mezzo ai pesi.
+L'ordine originale della chinesiologa erano due giorni distinti, con i blocchi aerobici
+alternati ai pesi. Esercizi, serie e ripetizioni sono i suoi e non sono stati toccati:
+è cambiato solo come sono distribuiti.
+
 Se Manlio dice che la scheda è cambiata, modifica `SCHEDA` e ricontrolla i totali.
 
 ## Vincoli tecnici — non negoziabili senza chiederglielo
@@ -69,12 +73,16 @@ Se Manlio dice che la scheda è cambiata, modifica `SCHEDA` e ricontrolla i tota
 Se riordini gli esercizi dentro `SCHEDA`, **le sedute passate diventano illeggibili**:
 gli indici non corrispondono più. Se devi riordinare, scrivi anche la migrazione.
 
-Il riordino del 2026-08-18 ne ha una: `SCHEDA_V`, `RINUMERA` e `migraSedute()`. Gira
-una volta sola e il numero di versione resta in `palestra.config` come `schedaV`.
+I riordini del 2026-08-18 ne hanno una, **a catena**: `SCHEDA_V` (3), `RINUMERA_2`,
+`RINUMERA_3`, `rinumera()` e `migraSedute()`. Chi è fermo alla versione 1 passa dalla 2
+e arriva alla 3 in un colpo solo. Il numero raggiunto resta in `palestra.config` come
+`schedaV`.
 **Attenzione:** quel numero va scritto anche da `salvaCfg()` e da `ripristina()`. Se lo
 dimentichi, la migrazione riparte al prossimo avvio e sposta le spunte una seconda
-volta, rovinando le sedute. Un backup senza `schedaV` è di prima del riordino e va
+volta, rovinando le sedute. Un backup senza `schedaV` è di prima dei riordini e va
 migrato; uno che ce l'ha no.
+Le sedute vecchie dicono ancora `giorno:2`: lo storico legge `SCHEDA[v.giorno]||SCHEDA[1]`
+apposta, non togliere quel fallback.
 
 **Attenzione:** sull'origine `manliograndi-del.github.io` vive anche l'app Diario, e le
 due condividono lo stesso `localStorage`. La separazione è data **solo dal prefisso**.

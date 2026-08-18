@@ -33,9 +33,9 @@ input{font-family:inherit}
 .testata{padding:calc(22px + env(safe-area-inset-top)) 18px 14px}
 .riga{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .occhiello{font-size:11px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--rosso);margin-bottom:6px}
-.titolone{font-size:40px;font-weight:900;line-height:.95;margin:0;letter-spacing:-.035em;text-transform:uppercase}
+.titolone{font-size:clamp(28px,8.4vw,40px);font-weight:900;line-height:.95;margin:0;letter-spacing:-.035em;text-transform:uppercase}
 .sotto{font-size:13px;color:var(--tenue);margin-top:7px}
-.spia{font-family:var(--mono);font-size:10.5px;color:var(--tenue);padding-top:6px}
+.spia{font-family:var(--mono);font-size:10.5px;color:var(--tenue);padding-top:6px;white-space:nowrap;flex-shrink:0}
 
 .avviso{margin:0 18px 12px;padding:13px 15px;background:var(--rosso);color:var(--su-rosso);font-size:13px;font-weight:600;border-radius:var(--raggio);display:flex;justify-content:space-between;gap:10px}
 .avviso-x{font-family:var(--mono);font-size:10.5px;opacity:.8;white-space:nowrap}
@@ -161,22 +161,18 @@ input{font-family:inherit}
    Dati nella memoria del telefono. Niente rete, niente account.
    ============================================================ */
 
-/* Ordine chiesto da Manlio il 2026-08-18: una sola attività aerobica in
-   apertura (la camminata), poi tutti i pesi di fila senza interruzioni, poi
-   15 minuti di cyclette in chiusura. La bici ellittica di metà seduta è
-   uscita da entrambi i giorni. Le serie di pesi non sono state toccate. */
+/* Un solo programma, chiesto da Manlio il 2026-08-18: la camminata in
+   apertura, poi tutti i pesi dei due vecchi giorni di fila, poi 15' di
+   cyclette in chiusura. Prima erano due giorni alternati; lui li fa tutti
+   nella stessa seduta, quindi la scelta del giorno non serviva più. */
 var SCHEDA = {
-  1: { nome:"Giorno 1", es:[
+  1: { nome:"Allenamento", es:[
     {n:"Tapis roulant", t:"cardio", min:15, nota:"Aumenta gradualmente la pendenza"},
     {n:"Abductor", t:"serie", set:4, rip:20, rec:60},
     {n:"Adductor", t:"serie", set:3, rip:12, rec:60},
     {n:"Leg press", t:"serie", set:4, rip:10, rec:60},
     {n:"Chest press", t:"serie", set:3, rip:12, rec:60},
     {n:"Low row", t:"serie", set:4, rip:15, rec:60},
-    {n:"Cyclette", t:"cardio", min:15}
-  ]},
-  2: { nome:"Giorno 2", es:[
-    {n:"Camminata in salita", t:"cardio", min:20, nota:"Aumenta gradualmente la pendenza"},
     {n:"Chest incline", t:"serie", set:3, rip:10, rec:60},
     {n:"Upper back", t:"serie", set:3, rip:10, rec:60},
     {n:"Vertical traction", t:"serie", set:4, rip:12, rec:60},
@@ -186,16 +182,19 @@ var SCHEDA = {
   ]}
 };
 
-/* Le sedute salvate puntano agli esercizi per posizione, non per nome: dopo il
-   riordino punterebbero all'esercizio sbagliato. Questa tabella rinumera una
-   volta sola le sedute vecchie. Le posizioni che mancano sono gli esercizi
-   usciti dalla scheda: quelle spunte si perdono, non hanno più un posto dove
-   stare. Serie, volume e totali già archiviati non cambiano. */
-var SCHEDA_V=2;
-var RINUMERA={
-  1:{0:0, 1:1, 2:2, 3:3, 5:4, 6:5, 7:6},   /* 4 era la bici ellittica */
-  2:{1:1, 2:2, 3:3, 5:4, 6:5, 7:0}         /* 0 era la cyclette iniziale, 4 la bici ellittica,
-                                              7 la camminata finale che ora apre la seduta */
+/* Le sedute salvate puntano agli esercizi per posizione. A ogni riordino le
+   posizioni cambiano, quindi si rinumerano una volta sola per versione, in
+   catena: chi è fermo alla 1 passa dalla 2 e arriva alla 3. Le posizioni che
+   mancano sono esercizi usciti dalla scheda: quelle spunte si perdono. */
+var SCHEDA_V=3;
+var RINUMERA_2={                             /* dalla scheda originale a quella riordinata */
+  1:{0:0, 1:1, 2:2, 3:3, 5:4, 6:5, 7:6},     /* 4 era la bici ellittica */
+  2:{1:1, 2:2, 3:3, 5:4, 6:5, 7:0}           /* 0 la cyclette iniziale, 4 la bici ellittica,
+                                                7 la camminata, che passa in testa */
+};
+var RINUMERA_3={                             /* dai due giorni al programma unico */
+  1:{0:0, 1:1, 2:2, 3:3, 4:4, 5:5, 6:11},
+  2:{0:0, 1:6, 2:7, 3:8, 4:9, 5:10, 6:11}
 };
 
 var K_CFG="palestra.config", K_IDX="palestra.indice", K_S="palestra.s.";
@@ -234,19 +233,18 @@ function avvia(){
   migraSedute();
   S.indice=leggi(K_IDX,{})||{};
   var s=leggi(K_S+S.data,null);
-  if(s){ S.giorno=s.giorno||1; S.fatte=s.fatte||{}; S.pesi=s.pesi||{}; S.cardio=s.cardio||{}; }
-  else { S.giorno=(S.ultimo===1)?2:1; }
+  S.giorno=1;
+  if(s){ S.fatte=s.fatte||{}; S.pesi=s.pesi||{}; S.cardio=s.cardio||{}; }
   if(!memOk) S.msg="Questo browser non permette il salvataggio. Esci dalla navigazione privata.";
   render();
 }
 function salvaCfg(){ scrivi(K_CFG,{pesiPrec:S.pesiPrec,riposo:S.riposo,schermo:S.schermo,ultimo:S.ultimo,schedaV:S.schedaV}); }
 
-/* Rinumera le sedute salvate dopo il riordino della scheda. Gira una volta
-   sola: il numero di versione resta scritto in configurazione. Se ripartisse
-   una seconda volta sposterebbe di nuovo le spunte, quindi il numero va
-   salvato insieme a tutto il resto (vedi salvaCfg e ripristina). */
-function migraSedute(){
-  if(S.schedaV>=SCHEDA_V) return;
+/* Rinumera le sedute salvate dopo un riordino della scheda. Gira una volta
+   sola per versione e il numero resta in `palestra.config` come `schedaV`.
+   Quel numero va scritto anche da salvaCfg() e da ripristina(): se si perde,
+   la migrazione riparte e sposta le spunte una seconda volta. */
+function rinumera(mappe,unico){
   var chiavi=[];
   try{
     for(var i=0;i<localStorage.length;i++){
@@ -256,12 +254,12 @@ function migraSedute(){
   }catch(e){ return; }
   chiavi.forEach(function(k){
     var s=leggi(k,null); if(!s) return;
-    var m=RINUMERA[s.giorno||1]; if(!m) return;
+    var m=mappe[s.giorno||1]; if(!m) return;
     var nf={}, nc={}, key, p, vecchio;
     for(key in s.fatte){
       if(!s.fatte[key]) continue;
       p=key.split("-"); vecchio=Number(p[0]);
-      if(m[vecchio]===undefined) continue;      /* esercizio uscito dalla scheda */
+      if(m[vecchio]===undefined) continue;   /* esercizio uscito dalla scheda */
       nf[m[vecchio]+"-"+p[1]]=true;
     }
     for(key in s.cardio){
@@ -271,9 +269,20 @@ function migraSedute(){
       nc[m[vecchio]]=true;
     }
     s.fatte=nf; s.cardio=nc;
+    if(unico) s.giorno=1;
     scrivi(k,s);
   });
-  S.schedaV=SCHEDA_V;
+}
+function migraSedute(){
+  if(S.schedaV>=SCHEDA_V) return;
+  if(S.schedaV<2){ rinumera(RINUMERA_2,false); S.schedaV=2; }
+  if(S.schedaV<3){
+    rinumera(RINUMERA_3,true); S.schedaV=3;
+    /* anche i riepiloghi dello storico parlavano di due giorni */
+    var idx=leggi(K_IDX,{})||{};
+    for(var d in idx){ idx[d].giorno=1; idx[d].tot=34; }
+    scrivi(K_IDX,idx);
+  }
   salvaCfg();
 }
 
@@ -379,7 +388,7 @@ function alRisveglio(){
   if(document.hidden) return;
   if(S.schermo) schermoAcceso(true);
   var d=oggiISO();
-  if(d!==S.data){ S.data=d; S.fatte={}; S.pesi={}; S.cardio={}; S.giorno=(S.ultimo===1)?2:1; }
+  if(d!==S.data){ S.data=d; S.fatte={}; S.pesi={}; S.cardio={}; S.giorno=1; }
   render();
   if(T.att) tic();
 }
@@ -412,17 +421,8 @@ function render(){
 }
 
 function vAllenamento(){
-  var g=SCHEDA[S.giorno], h="", tot=totSerie(), fatte=fatteN();
-  var consigliato=(S.ultimo===1)?2:1;
-
-  h+='<div class="giorni">';
-  [1,2].forEach(function(k){
-    var nEs=SCHEDA[k].es.length;
-    h+='<button class="gio'+(S.giorno===k?" on":"")+'" data-az="giorno" data-v="'+k+'">'+
-       '<b>'+SCHEDA[k].nome+'</b><span>'+nEs+' esercizi</span>'+
-       (k===consigliato&&S.giorno!==k?'<span class="consiglio">tocca a questo</span>':'')+'</button>';
-  });
-  h+='</div>';
+  /* Un solo programma: non c'è più niente da scegliere in cima. */
+  var g=SCHEDA[1], h="", tot=totSerie(), fatte=fatteN();
 
   h+='<section class="pannello"><div class="avanz"><span class="etichetta">Serie completate</span>'+
      '<span class="avanz-c">'+fatte+'<span>/'+tot+'</span></span></div>'+
@@ -473,11 +473,11 @@ function vStorico(){
     var v=S.indice[d];
     h+='<div class="gruppo"><button class="sed" data-az="apri" data-d="'+d+'"><div>'+
        '<div class="sed-d">'+dataEstesa(d)+'</div>'+
-       '<div class="sed-m">'+SCHEDA[v.giorno].nome+' · '+v.serie+' di '+v.tot+' serie</div></div>'+
+       '<div class="sed-m">'+(SCHEDA[v.giorno]||SCHEDA[1]).nome+' · '+v.serie+' di '+v.tot+' serie</div></div>'+
        '<div class="sed-k">'+(v.volume?num(v.volume)+" kg":"—")+'</div></button>';
     if(S.aperto===d&&S.apertoS){
       h+='<div class="dett">';
-      SCHEDA[S.apertoS.giorno].es.forEach(function(e,i){
+      (SCHEDA[S.apertoS.giorno]||SCHEDA[1]).es.forEach(function(e,i){
         if(e.t==="cardio"){ if(S.apertoS.cardio&&S.apertoS.cardio[i]) h+='<div class="dett-v"><span>'+esc(e.n)+'</span><span>'+e.min+"'"+'</span></div>'; return; }
         var f=0; for(var j=0;j<e.set;j++) if(S.apertoS.fatte&&S.apertoS.fatte[i+"-"+j]) f++;
         if(f) h+='<div class="dett-v"><span>'+esc(e.n)+'</span><span>'+f+'×'+e.rip+
@@ -513,7 +513,7 @@ function vImpostazioni(){
      '<button class="b2" data-az="importa">Ripristina</button></section>';
 
   h+='<section class="pannello"><div class="etichetta">La scheda</div>'+
-     '<div class="nota">Due giorni, redatta da Sofia Pilan per Virgin Active. Gli esercizi sono scritti dentro l\'app: per cambiarli serve una nuova versione del file.</div></section>';
+     '<div class="nota">Un unico programma: camminata, tutti gli esercizi coi pesi, cyclette. Esercizi e serie sono di Sofia Pilan per Virgin Active. Sono scritti dentro l\'app: per cambiarli serve una nuova versione del file.</div></section>';
   return h;
 }
 
@@ -524,12 +524,6 @@ document.body.addEventListener("click",function(ev){
 
   if(az==="vista"){ S.vista=v; S.focus=null; render(); }
   else if(az==="chiudi-msg"){ S.msg=null; render(); }
-  else if(az==="giorno"){
-    if(fatteN()>0||Object.keys(S.cardio).length>0){
-      S.msg="Hai già spuntato qualcosa. Azzera la seduta prima di cambiare giorno.";
-    } else { S.giorno=Number(v); }
-    render();
-  }
   else if(az==="set"){
     var i=b.getAttribute("data-i"), j=b.getAttribute("data-j"), k=i+"-"+j;
     var e=SCHEDA[S.giorno].es[Number(i)];
