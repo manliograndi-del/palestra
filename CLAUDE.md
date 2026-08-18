@@ -106,14 +106,31 @@ Non usare mai chiavi senza prefisso `palestra.`.
 
 ## Aspetto
 
-Stessa famiglia visiva dell'app Diario, di proposito. Palette in `:root`:
-`--carta #E9ECE6` · `--superficie #FFF` · `--inchiostro #141B18` · `--tenue #5B6661`
-`--linea #CDD3CB` · `--blu #1F4A6B` · `--senape #C08411` · `--rosso #A3341F` ·
-`--verde #2E6B4F` (serie completate)
+**Rifatto il 2026-08-18 sul linguaggio visivo di Virgin Active**, su richiesta di
+Manlio e partendo dalle schermate della loro app. Prima seguiva la famiglia visiva del
+Diario: quella parentela non c'è più, e il Diario è rimasto chiaro e sobrio.
 
-L'elemento centrale sono le pastiglie delle serie: una per serie, col numero di
-ripetizioni dentro, verdi quando fatte. Il timer sale dal basso e occupa la fascia
-inferiore. Sobrio, strumentale, niente decorazioni.
+Nero, bianco, rosso. Palette in `:root`:
+`--carta #000` · `--superficie #151515` · `--superficie2 #232323` · `--inchiostro #FFF`
+`--tenue #9A9A9A` · `--linea #2E2E2E` · `--rosso #E4002B` (il rosso Virgin) ·
+`--su-rosso #FFF` · `--raggio 16px`
+
+`--blu`, `--senape` e `--verde` esistono ancora ma puntano tutti al rosso: erano
+sparsi nel CSS e toglierli avrebbe voluto dire riscriverlo tutto. Non usarli per cose
+nuove, usa `--rosso`.
+
+**Il rosso è l'unico accento e significa "azione" o "fatto".** Non spenderlo per
+decorare, o smette di voler dire qualcosa. Le serie completate sono pastiglie rosse
+piene (prima erano verdi). Titoli in maiuscolo pesante, pulsanti a pastiglia
+(`border-radius:99px`), riquadri a 16px, barra in basso con la voce attiva su fondo
+rosso pieno.
+
+**Niente font di Virgin**: è un carattere loro e caricarlo significherebbe dipendere
+dalla rete, che in palestra non c'è. Si usano i caratteri di sistema spinti su peso
+(800–900) e spaziatura negativa.
+
+L'elemento centrale restano le pastiglie delle serie: una per serie, col numero di
+ripetizioni dentro. Il timer sale dal basso come riquadro staccato.
 
 ## Prima di chiudere una sessione
 
