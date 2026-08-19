@@ -109,6 +109,14 @@ Non usare mai chiavi senza prefisso `palestra.`.
 - Il segnale è vibrazione + tre bip a 880 Hz.
 - **Il volume** è la somma di `kg × ripetizioni` sulle serie spuntate. Serve a dare un
   numero unico di confronto fra sedute.
+- **Quarta voce nella barra: Carichi** (chiesta il 2026-08-19). Per ogni macchina, i
+  chili dell'ultima volta, quanto sono cambiati dall'inizio e una lineetta
+  dell'andamento; toccando l'esercizio si aprono tutte le volte con la differenza da
+  quella prima. Ricostruita rileggendo le sedute a ogni disegno: sono poche e piccole,
+  non serve una cache. Gli esercizi escono nell'ordine di `SCHEDA`, e solo quelli con
+  almeno un peso segnato.
+  I chili di ogni singola seduta erano **già** salvati (`pesi` dentro `palestra.s.*`) e
+  già visibili nel dettaglio: lui chiedeva l'andamento nel tempo, non il singolo giorno.
 - **Lo Storico si apre su un riepilogo mensile** (chiesto il 2026-08-18): calendario del
   mese con i giorni allenati in rosso, frecce per spostarsi, e sotto i totali del mese —
   allenamenti, serie, volume. Si naviga anche sui mesi vuoti fra il primo allenamento e

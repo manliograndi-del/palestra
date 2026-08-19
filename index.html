@@ -137,7 +137,18 @@ input{font-family:inherit}
 .sw.on i{left:25px}
 
 .barra{position:fixed;bottom:0;left:0;right:0;display:flex;background:#0A0A0A;border-top:1px solid var(--linea);max-width:560px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom);z-index:30}
-.b-voce{flex:1;padding:16px 4px;font-size:11.5px;color:var(--tenue);font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-top:none}
+.b-voce{flex:1;padding:16px 2px;font-size:10px;color:var(--tenue);font-weight:700;text-transform:uppercase;letter-spacing:.02em;border-top:none;white-space:nowrap}
+
+/* carichi nel tempo */
+.car{width:100%;display:flex;align-items:center;gap:12px;padding:15px 2px;border-bottom:1px solid var(--linea);text-align:left;color:var(--inchiostro)}
+.car-s{flex:1;min-width:0}
+.car-n{font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.car-m{font-family:var(--mono);font-size:10px;color:var(--tenue);margin-top:4px}
+.car-l{width:76px;height:30px;flex-shrink:0}
+.linea{width:100%;height:100%;display:block}
+.car-k{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0}
+.car-k.su{color:var(--rosso)}
+.car-k span{font-size:11px;font-weight:400;color:var(--tenue)}
 .b-voce.on{color:var(--su-rosso);background:var(--rosso);font-weight:800}
 
 /* riepilogo del mese */
@@ -237,7 +248,7 @@ var S={
   pesi:{},            // nome esercizio -> kg di oggi
   pesiPrec:{},        // ultimi kg registrati
   cardio:{},          // indice -> true se completato
-  indice:{}, riposo:60, schermo:true, ultimo:null, schedaV:SCHEDA_V, mese:null,
+  indice:{}, riposo:60, schermo:true, ultimo:null, schedaV:SCHEDA_V, mese:null, carico:null,
   msg:null, spia:"", focus:null, aperto:null, apertoS:null, export:"", importa:""
 };
 
@@ -419,16 +430,17 @@ function render(){
   var h="";
   h+='<header class="testata"><div class="riga"><div>'+
      '<div class="occhiello">Palestra</div>'+
-     '<h1 class="titolone">'+(S.vista==="allenamento"?SCHEDA[S.giorno].nome:S.vista==="storico"?"Storico":"Impostazioni")+'</h1>'+
+     '<h1 class="titolone">'+(S.vista==="allenamento"?SCHEDA[S.giorno].nome:S.vista==="storico"?"Storico":S.vista==="carichi"?"Carichi":"Impostazioni")+'</h1>'+
      '<div class="sotto">'+dataEstesa(S.data)+'</div></div><div class="spia">'+S.spia+'</div></div></header>';
   if(S.msg) h+='<div class="avviso" data-az="chiudi-msg">'+esc(S.msg)+' <span class="avviso-x">chiudi</span></div>';
   h+='<main class="corpo">';
   if(S.vista==="allenamento") h+=vAllenamento();
   else if(S.vista==="storico") h+=vStorico();
+  else if(S.vista==="carichi") h+=vCarichi();
   else h+=vImpostazioni();
   h+='</main>';
   h+='<nav class="barra">';
-  [["allenamento","Allenamento"],["storico","Storico"],["impostazioni","Impostazioni"]].forEach(function(v){
+  [["allenamento","Allenamento"],["storico","Storico"],["carichi","Carichi"],["impostazioni","Impostazioni"]].forEach(function(v){
     h+='<button class="b-voce'+(S.vista===v[0]?" on":"")+'" data-az="vista" data-v="'+v[0]+'">'+v[1]+'</button>';
   });
   h+='</nav>';
@@ -507,6 +519,70 @@ function dettaglioSeduta(s){
   });
   if(!righe) h+='<div class="dett-v"><span>Seduta aperta ma nessuna serie spuntata.</span></div>';
   return h+'</div>';
+}
+
+/* I carichi nel tempo. Ogni seduta salva i chili per esercizio, quindi la
+   progressione si ricostruisce leggendo le sedute in ordine di data. Le sedute
+   sono poche e i file piccoli: si rilegge a ogni disegno, senza cache. */
+function storicoCarichi(){
+  var per={};
+  Object.keys(S.indice).sort().forEach(function(d){
+    var s=leggi(K_S+d,null); if(!s||!s.pesi) return;
+    for(var n in s.pesi){
+      var kg=Number(s.pesi[n]);
+      if(!kg||kg<=0) continue;              /* niente peso segnato quel giorno */
+      (per[n]=per[n]||[]).push({d:d,kg:kg});
+    }
+  });
+  return per;
+}
+
+/* Linea dell'andamento. vector-effect tiene lo spessore costante nonostante
+   lo stiramento orizzontale. */
+function lineetta(valori){
+  if(valori.length<2) return '';
+  var min=Math.min.apply(null,valori), max=Math.max.apply(null,valori);
+  var amp=(max-min)||1, W=100, H=30, passo=W/(valori.length-1);
+  var punti=valori.map(function(v,i){
+    return (i*passo).toFixed(1)+","+(H-((v-min)/amp)*H).toFixed(1);
+  }).join(" ");
+  return '<svg class="linea" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">'+
+         '<polyline points="'+punti+'" fill="none" style="stroke:var(--rosso)" stroke-width="2" '+
+         'vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+}
+
+function vCarichi(){
+  var per=storicoCarichi();
+  var lista=SCHEDA[1].es.filter(function(e){ return e.t==="serie"&&per[e.n]&&per[e.n].length; });
+  if(!lista.length) return '<div class="vuoto">Qui vedrai come salgono i carichi, esercizio per esercizio. Si riempie da solo: basta che scrivi i chili nella casella mentre ti alleni.</div>';
+
+  var h='<section class="pannello"><div class="etichetta">Come stai salendo</div>'+
+        '<div class="nota">Per ogni macchina, i chili dell\'ultima volta e quanto sono cambiati da quando hai cominciato. Tocca un esercizio per vedere tutte le volte.</div></section>';
+
+  lista.forEach(function(e){
+    var v=per[e.n], kg=v.map(function(x){return x.kg;});
+    var ultimo=kg[kg.length-1], primo=kg[0], diff=ultimo-primo;
+    var aperto=S.carico===e.n;
+    h+='<div class="gruppo"><button class="car" data-az="carico" data-v="'+esc(e.n)+'">'+
+       '<div class="car-s"><div class="car-n">'+esc(e.n)+'</div>'+
+       '<div class="car-m">'+v.length+(v.length===1?' volta':' volte')+' \u00b7 '+
+       (diff>0?'+'+num(diff,1)+' kg dall\'inizio':diff<0?num(diff,1)+' kg dall\'inizio':'sempre '+num(primo,1)+' kg')+
+       '</div></div>'+
+       '<div class="car-l">'+lineetta(kg)+'</div>'+
+       '<div class="car-k'+(diff>0?' su':'')+'">'+num(ultimo,1)+'<span> kg</span></div></button>';
+    if(aperto){
+      h+='<div class="dett">';
+      v.slice().reverse().forEach(function(x,i){
+        var prec=v[v.length-2-i];
+        var d=prec?x.kg-prec.kg:0;
+        h+='<div class="dett-v"><span>'+dataEstesa(x.d)+'</span><span>'+num(x.kg,1)+' kg'+
+           (prec&&d?' \u00b7 '+(d>0?'+':'')+num(d,1):'')+'</span></div>';
+      });
+      h+='</div>';
+    }
+    h+='</div>';
+  });
+  return h;
 }
 
 function vStorico(){
@@ -610,6 +686,7 @@ document.body.addEventListener("click",function(ev){
 
   if(az==="vista"){ S.vista=v; S.focus=null; render(); }
   else if(az==="chiudi-msg"){ S.msg=null; render(); }
+  else if(az==="carico"){ S.carico=(S.carico===v)?null:v; render(); }
   else if(az==="mese"){ S.mese=v; S.aperto=null; S.apertoS=null; render(); }
   else if(az==="set"){
     var i=b.getAttribute("data-i"), j=b.getAttribute("data-j"), k=i+"-"+j;
