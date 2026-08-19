@@ -63,8 +63,11 @@ Se Manlio dice che la scheda è cambiata, modifica `SCHEDA` e ricontrolla i tota
 
 `localStorage`, con questi prefissi:
 
-- `palestra.config` → `{pesiPrec:{...}, riposo, schermo, ultimo}`
-  `pesiPrec` è il carico dell'ultima volta per esercizio, mostrato come riferimento.
+- `palestra.config` → `{pesiPrec:{...}, riposo, schermo, ultimo, schedaV}`
+  `pesiPrec` è il carico per esercizio, aggiornato **mentre si scrive**: serve poco e
+  non va usato come "ultima volta", perché dopo due tasti non ricorda più da dove eri
+  partito. Il riferimento vero è `S.pesiRif`, ricalcolato da `calcolaRiferimenti()`
+  leggendo l'ultima seduta con data precedente a oggi.
   `ultimo` è l'ultimo giorno svolto: serve a proporre l'altro all'apertura.
 - `palestra.indice` → `{"2026-08-17": {giorno,serie,tot,volume}, ...}`
 - `palestra.s.YYYY-MM-DD` → `{giorno, fatte:{"i-j":true}, pesi, cardio, volume}`
@@ -109,6 +112,12 @@ Non usare mai chiavi senza prefisso `palestra.`.
 - Il segnale è vibrazione + tre bip a 880 Hz.
 - **Il volume** è la somma di `kg × ripetizioni` sulle serie spuntate. Serve a dare un
   numero unico di confronto fra sedute.
+- **La casella dei kg si presenta già col carico dell'ultima volta** (chiesto il
+  2026-08-19: ribatterlo su dieci macchine era una scocciatura). Il numero proposto
+  diventa il carico di oggi **solo quando spunti la prima serie** di quell'esercizio:
+  finché non lo fai è una proposta, non un dato, e non entra né nel volume né nei
+  Carichi. Il promemoria "ultima volta" ora compare solo se oggi hai messo un numero
+  diverso — altrimenti ripeterebbe quello che c'è già nella casella.
 - **Quarta voce nella barra: Carichi** (chiesta il 2026-08-19). Per ogni macchina, i
   chili dell'ultima volta, quanto sono cambiati dall'inizio e una lineetta
   dell'andamento; toccando l'esercizio si aprono tutte le volte con la differenza da

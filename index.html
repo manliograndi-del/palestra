@@ -249,6 +249,7 @@ var S={
   pesiPrec:{},        // ultimi kg registrati
   cardio:{},          // indice -> true se completato
   indice:{}, riposo:60, schermo:true, ultimo:null, schedaV:SCHEDA_V, mese:null, carico:null,
+  pesiRif:{},         // i carichi della seduta precedente: proposta e termine di paragone
   msg:null, spia:"", focus:null, aperto:null, apertoS:null, export:"", importa:""
 };
 
@@ -265,9 +266,21 @@ function avvia(){
   var s=leggi(K_S+S.data,null);
   S.giorno=1;
   if(s){ S.fatte=s.fatte||{}; S.pesi=s.pesi||{}; S.cardio=s.cardio||{}; }
+  calcolaRiferimenti();
   if(!memOk) S.msg="Questo browser non permette il salvataggio. Esci dalla navigazione privata.";
   render();
 }
+/* I carichi dell'ultima seduta davvero fatta. Non uso `pesiPrec` perché quello
+   si aggiorna mentre scrivi: dopo due tasti non saprebbe più dirti da dove eri
+   partito. Questo invece è fermo, e sopravvive a un ricaricamento. */
+function calcolaRiferimenti(){
+  S.pesiRif={};
+  var passate=Object.keys(S.indice).filter(function(d){ return d<S.data; }).sort();
+  if(!passate.length) return;
+  var ult=leggi(K_S+passate[passate.length-1],null);
+  if(ult&&ult.pesi) S.pesiRif=ult.pesi;
+}
+
 function salvaCfg(){ scrivi(K_CFG,{pesiPrec:S.pesiPrec,riposo:S.riposo,schermo:S.schermo,ultimo:S.ultimo,schedaV:S.schedaV}); }
 
 /* Rinumera le sedute salvate dopo un riordino della scheda. Gira una volta
@@ -418,7 +431,7 @@ function alRisveglio(){
   if(document.hidden) return;
   if(S.schermo) schermoAcceso(true);
   var d=oggiISO();
-  if(d!==S.data){ S.data=d; S.fatte={}; S.pesi={}; S.cardio={}; S.giorno=1; }
+  if(d!==S.data){ S.data=d; S.fatte={}; S.pesi={}; S.cardio={}; S.giorno=1; calcolaRiferimenti(); }
   render();
   if(T.att) tic();
 }
@@ -470,7 +483,7 @@ function vAllenamento(){
       return;
     }
     var f=0; for(var j=0;j<e.set;j++) if(S.fatte[i+"-"+j]) f++;
-    var prec=S.pesiPrec[e.n];
+    var prec=S.pesiRif[e.n];
     h+='<div class="es'+(f===e.set?" fatto":"")+'"><div class="es-testa">'+
        '<h2 class="es-nome">'+esc(e.n)+'</h2>'+
        '<span class="es-pre">'+e.set+' × '+e.rip+' · rec '+mmss(e.rec)+'</span></div>';
@@ -481,9 +494,15 @@ function vAllenamento(){
       h+='<button class="set'+(on?" on":"")+'" data-az="set" data-i="'+i+'" data-j="'+j2+'">'+
          '<b>'+e.rip+'</b><i>'+(j2+1)+'ª</i></button>';
     }
+    /* La casella si presenta già col carico dell'ultima volta: quasi sempre è
+       quello giusto e ribatterlo a ogni macchina era una scocciatura. Diventa il
+       peso di oggi solo quando spunti la prima serie (vedi il gestore "set"):
+       finché non fai l'esercizio, il numero è una proposta, non un dato. */
+    var mostrato=S.pesi[e.n]!==undefined?S.pesi[e.n]:(prec!==undefined?prec:"");
+    var diverso=prec!==undefined&&prec!==""&&String(mostrato)!==String(prec);
     h+='</div><div class="peso"><input data-in="kg-'+i+'" type="number" inputmode="decimal" '+
-       'placeholder="kg" value="'+(S.pesi[e.n]!==undefined?S.pesi[e.n]:"")+'"><span class="u">kg</span>'+
-       (prec!==undefined&&prec!==""?'<span class="prec">ultima volta<br>'+num(prec,1)+' kg</span>':'')+
+       'placeholder="kg" value="'+mostrato+'"><span class="u">kg</span>'+
+       (diverso?'<span class="prec">ultima volta<br>'+num(prec,1)+' kg</span>':'')+
        '</div></div>';
   });
 
@@ -692,7 +711,14 @@ document.body.addEventListener("click",function(ev){
     var i=b.getAttribute("data-i"), j=b.getAttribute("data-j"), k=i+"-"+j;
     var e=SCHEDA[S.giorno].es[Number(i)];
     if(S.fatte[k]){ delete S.fatte[k]; fermaTimer(); }
-    else { S.fatte[k]=true; avviaTimer(S.riposo||e.rec||60,"Recupero — "+e.n); }
+    else {
+      S.fatte[k]=true;
+      /* l'esercizio lo stai facendo davvero: il carico proposto diventa il carico
+         di oggi, così entra nel volume e nella pagina Carichi */
+      if(S.pesi[e.n]===undefined&&S.pesiRif[e.n]!==undefined&&S.pesiRif[e.n]!=="")
+        S.pesi[e.n]=S.pesiRif[e.n];
+      avviaTimer(S.riposo||e.rec||60,"Recupero — "+e.n);
+    }
     salva(); render();
   }
   else if(az==="cardio"){
