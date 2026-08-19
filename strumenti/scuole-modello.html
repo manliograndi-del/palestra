@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anagrafe Scuole Statali</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+/* ---------------------------------------------------------------------------
+   Anagrafe delle scuole statali: una scheda per scuola.
+   Tutto in un file solo, dati compresi, cosi' funziona anche senza rete.
+   Inchiostro su carta da registro. Il blu e' l'unico accento e porta
+   un'informazione vera - il grado di istruzione - dal piu' chiaro
+   (infanzia) al piu' scuro (secondaria di secondo grado).
+--------------------------------------------------------------------------- */
+
+:root{
+  --carta:#E8EBF1;
+  --superficie:#FFFFFF;
+  --superficie2:#F2F5FA;
+  --inchiostro:#12151D;
+  --testo-tenue:#5A6272;
+  --linea:#D3D8E2;
+  --linea-forte:#B7BFCE;
+  --accento:#1D3F8B;
+  --accento-tenue:#E3EAF8;
+  --su-accento:#FFFFFF;
+  --ombra:0 1px 2px rgba(18,21,29,.05), 0 10px 26px -18px rgba(18,21,29,.45);
+  --g0:#5A6272;
+  --g1:#3F7F97;
+  --g2:#2E6BB0;
+  --g3:#2A4E9E;
+  --g4:#1D3F8B;
+  --g5:#4B4374;
+  --g6:#5E6472;
+  --g7:#7A5347;
+  --raggio:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --carta:#0C0F16;
+    --superficie:#151A23;
+    --superficie2:#1D222D;
+    --inchiostro:#EDF0F6;
+    --testo-tenue:#98A1B2;
+    --linea:#293040;
+    --linea-forte:#3C4454;
+    --accento:#8FAFF4;
+    --accento-tenue:#1A2337;
+    --su-accento:#0C0F16;
+    --ombra:0 1px 2px rgba(0,0,0,.5), 0 12px 32px -20px rgba(0,0,0,.95);
+    --g0:#98A1B2;
+    --g1:#8FD0E4;
+    --g2:#82B6F2;
+    --g3:#8E9DEE;
+    --g4:#8286EA;
+    --g5:#A78FD6;
+    --g6:#AAB2C2;
+    --g7:#CDA694;
+  }
+}
+:root[data-theme="dark"]{
+  --carta:#0C0F16;
+  --superficie:#151A23;
+  --superficie2:#1D222D;
+  --inchiostro:#EDF0F6;
+  --testo-tenue:#98A1B2;
+  --linea:#293040;
+  --linea-forte:#3C4454;
+  --accento:#8FAFF4;
+  --accento-tenue:#1A2337;
+  --su-accento:#0C0F16;
+  --ombra:0 1px 2px rgba(0,0,0,.5), 0 12px 32px -20px rgba(0,0,0,.95);
+  --g0:#98A1B2;
+  --g1:#8FD0E4;
+  --g2:#82B6F2;
+  --g3:#8E9DEE;
+  --g4:#8286EA;
+  --g5:#A78FD6;
+  --g6:#AAB2C2;
+  --g7:#CDA694;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--carta);
+  color:var(--inchiostro);
+  font-family:Archivo,"Helvetica Neue",Arial,sans-serif;
+  font-size:16px;
+  line-height:1.5;
+  padding-bottom:64px;
+}
+a{color:var(--accento)}
+:focus-visible{outline:3px solid var(--accento);outline-offset:2px;border-radius:6px}
+
+/* --- testata ------------------------------------------------------------ */
+.testata{
+  background:var(--superficie);
+  border-bottom:1px solid var(--linea);
+  padding:22px 16px 16px;
+}
+.guscio{max-width:1180px;margin:0 auto}
+.occhiello{
+  font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--testo-tenue);margin:0 0 6px;
+}
+.titolo{
+  font-family:Archivo,sans-serif;font-weight:800;letter-spacing:-.03em;
+  font-size:clamp(26px,7vw,42px);line-height:1.05;margin:0;text-wrap:balance;
+}
+.sottotitolo{
+  margin:8px 0 0;color:var(--testo-tenue);font-size:14px;max-width:58ch;
+}
+.sottotitolo b{color:var(--inchiostro);font-variant-numeric:tabular-nums}
+
+/* --- comandi ------------------------------------------------------------ */
+.comandi{
+  position:sticky;top:0;z-index:20;
+  background:var(--superficie);
+  border-bottom:1px solid var(--linea);
+  padding:10px 16px 0;
+}
+.cerca{position:relative;display:flex;align-items:center;gap:8px}
+.cerca input{
+  flex:1;min-width:0;
+  font:500 17px/1.2 Archivo,sans-serif;color:var(--inchiostro);
+  background:var(--superficie2);
+  border:1.5px solid var(--linea-forte);border-radius:99px;
+  padding:14px 16px;
+}
+.cerca input::placeholder{color:var(--testo-tenue);font-weight:400}
+.cerca input:focus{border-color:var(--accento);outline:none}
+.pulisci{
+  border:0;background:none;color:var(--testo-tenue);
+  font:600 14px Archivo,sans-serif;padding:12px 4px;cursor:pointer;
+}
+.filtri{display:flex;gap:8px;padding:10px 0 0;flex-wrap:wrap}
+.filtri select{
+  font:500 14px Archivo,sans-serif;color:var(--inchiostro);
+  background:var(--superficie2);border:1.5px solid var(--linea);
+  border-radius:99px;padding:9px 12px;max-width:48%;
+}
+.gradi{
+  display:flex;gap:8px;overflow-x:auto;padding:10px 0;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.gradi::-webkit-scrollbar{display:none}
+.grado{
+  flex:0 0 auto;cursor:pointer;
+  font:600 13px Archivo,sans-serif;letter-spacing:.01em;
+  background:var(--superficie2);color:var(--inchiostro);
+  border:1.5px solid var(--linea);border-radius:99px;padding:8px 14px;
+  display:inline-flex;align-items:center;gap:7px;
+}
+.grado .pallino{width:9px;height:9px;border-radius:50%;background:var(--g0)}
+.grado[aria-pressed="true"]{background:var(--accento);border-color:var(--accento);color:var(--su-accento)}
+.grado[aria-pressed="true"] .pallino{background:var(--su-accento)}
+
+/* --- esito -------------------------------------------------------------- */
+.esito{
+  max-width:1180px;margin:0 auto;padding:14px 16px 0;
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  font-size:13px;color:var(--testo-tenue);
+}
+.esito b{color:var(--inchiostro);font-variant-numeric:tabular-nums;font-size:15px}
+
+.elenco{
+  max-width:1180px;margin:0 auto;padding:12px 16px 0;
+  display:grid;gap:14px;grid-template-columns:1fr;
+}
+@media (min-width:720px){ .elenco{grid-template-columns:1fr 1fr} }
+@media (min-width:1080px){ .elenco{grid-template-columns:1fr 1fr 1fr} }
+
+/* --- scheda ------------------------------------------------------------- */
+.scheda{
+  background:var(--superficie);
+  border:1px solid var(--linea);
+  border-radius:var(--raggio);
+  box-shadow:var(--ombra);
+  overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.fascia{height:5px;background:var(--g0)}
+.intestazione{padding:14px 16px 12px;border-bottom:1px solid var(--linea)}
+.nome{
+  font-family:Newsreader,Georgia,serif;font-weight:600;
+  font-size:21px;line-height:1.2;margin:0;text-wrap:balance;
+}
+.riga-tag{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tag{
+  font:700 11px Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  border-radius:99px;padding:4px 9px;
+  color:var(--g0);border:1.5px solid currentColor;
+  background:color-mix(in srgb, currentColor 12%, transparent);
+}
+.tag.neutro{color:var(--testo-tenue);border-color:var(--linea-forte);background:var(--superficie2)}
+.codice{
+  margin-top:10px;display:inline-flex;align-items:center;gap:8px;
+  font:500 14px "Spline Sans Mono",ui-monospace,monospace;letter-spacing:.02em;
+  background:var(--superficie2);border:1px dashed var(--linea-forte);
+  border-radius:8px;padding:6px 10px;cursor:pointer;color:var(--inchiostro);
+}
+.codice small{font:600 10px Archivo,sans-serif;letter-spacing:.1em;color:var(--testo-tenue);text-transform:uppercase}
+
+.corpo{padding:12px 16px 4px;display:grid;gap:0}
+.voce{
+  display:grid;grid-template-columns:118px 1fr;gap:10px;
+  padding:9px 0;border-top:1px solid var(--linea);align-items:start;
+}
+.corpo .voce:first-child{border-top:0}
+.et{
+  font:700 10px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--testo-tenue);padding-top:3px;
+}
+.vl{font-size:14.5px;line-height:1.45;word-break:break-word}
+.vl .mono{font-family:"Spline Sans Mono",ui-monospace,monospace;font-size:13.5px}
+.vl .vuoto{color:var(--testo-tenue);font-style:italic}
+.vl .ricavata{color:var(--testo-tenue);font-size:12px;display:block}
+@media (max-width:400px){ .voce{grid-template-columns:1fr;gap:2px} .et{padding-top:0} }
+
+.azioni{
+  display:flex;gap:8px;flex-wrap:wrap;
+  padding:12px 16px 16px;margin-top:auto;
+}
+.azione{
+  flex:1 1 auto;text-align:center;text-decoration:none;
+  font:700 13px Archivo,sans-serif;letter-spacing:.02em;
+  border-radius:99px;padding:11px 14px;
+  background:var(--accento-tenue);color:var(--accento);
+  border:1px solid transparent;
+}
+.azione:hover{border-color:var(--accento)}
+
+/* --- stati -------------------------------------------------------------- */
+.avviso{
+  max-width:1180px;margin:0 auto;padding:40px 16px;text-align:center;
+  color:var(--testo-tenue);
+}
+.avviso strong{display:block;color:var(--inchiostro);font-size:18px;margin-bottom:6px}
+.altre{
+  max-width:1180px;margin:0 auto;padding:18px 16px 40px;text-align:center;
+}
+.altre button{
+  font:700 14px Archivo,sans-serif;
+  background:var(--superficie);color:var(--inchiostro);
+  border:1.5px solid var(--linea-forte);border-radius:99px;
+  padding:13px 26px;cursor:pointer;
+}
+.su{
+  position:fixed;right:16px;bottom:16px;z-index:30;
+  width:48px;height:48px;border-radius:50%;cursor:pointer;
+  background:var(--accento);color:var(--su-accento);border:0;
+  font:700 18px Archivo,sans-serif;box-shadow:var(--ombra);
+  display:none;
+}
+.su.visibile{display:block}
+.pie{
+  max-width:1180px;margin:0 auto;padding:8px 16px 32px;
+  color:var(--testo-tenue);font-size:12.5px;line-height:1.6;
+}
+.avvisocopia{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:40;
+  background:var(--inchiostro);color:var(--carta);
+  font:600 13px Archivo,sans-serif;padding:10px 18px;border-radius:99px;
+  opacity:0;pointer-events:none;transition:opacity .18s ease;
+}
+.avvisocopia.mostra{opacity:1}
+@media (prefers-reduced-motion:reduce){ *{transition:none !important;animation:none !important} }
+</style>
+</head>
+<body>
+
+<header class="testata">
+  <div class="guscio">
+    <p class="occhiello">Ministero dell'Istruzione &middot; dati aperti</p>
+    <h1 class="titolo">Anagrafe delle scuole statali</h1>
+    <p class="sottotitolo">Anno scolastico <b id="anno">-</b>. <b id="totale">-</b> sedi scolastiche,
+      una scheda per ciascuna con tutti i dati depositati: dove sta, a che istituto fa capo, come si contatta.</p>
+  </div>
+</header>
+
+<div class="comandi">
+  <div class="guscio">
+    <div class="cerca">
+      <input id="q" type="search" inputmode="search" autocomplete="off"
+             placeholder="Cerca scuola, comune o codice" aria-label="Cerca scuola, comune o codice">
+      <button class="pulisci" id="pulisci" type="button" hidden>Pulisci</button>
+    </div>
+    <div class="filtri">
+      <select id="fregione" aria-label="Regione"><option value="">Tutte le regioni</option></select>
+      <select id="fprovincia" aria-label="Provincia"><option value="">Tutte le province</option></select>
+    </div>
+    <div class="gradi" id="gradi" role="group" aria-label="Grado di istruzione"></div>
+  </div>
+</div>
+
+<p class="esito"><span><b id="conteggio">-</b> <span id="parola">scuole</span></span><span id="ordine">in ordine di comune</span></p>
+
+<main class="elenco" id="elenco"></main>
+<div class="avviso" id="avviso" hidden></div>
+<div class="altre" id="altre" hidden><button type="button" id="ancora">Mostra altre 24 schede</button></div>
+
+<footer class="pie">
+  <div class="guscio">
+    Fonte: anagrafe delle scuole statali del Ministero dell'Istruzione e del Merito, rilevazione al 1&deg; settembre.
+    I dati sono quelli pubblicati: dove il ministero non ha compilato un campo, la scheda lo dice invece di inventarlo.
+    Gli indirizzi di posta che non risultano in anagrafe sono ricostruiti dal codice dell'istituto di riferimento, come da convenzione ministeriale.
+  </div>
+</footer>
+
+<button class="su" id="su" type="button" aria-label="Torna in cima">&uarr;</button>
+<div class="avvisocopia" id="avvisocopia" role="status" aria-live="polite"></div>
+
+<script>
+/* I dati impacchettati: dizionari piu' una riga per scuola, campi separati da
+   tabulazione. Generati da strumenti/scuole-impacchetta.py dal CSV ministeriale. */
+/*DATI*/
+
+/* --- lettura dei dizionari --------------------------------------------- */
+const PROV = D_PROV.split("\n").map(function(r){ return r.split("\t"); }); /* nome, regione, area */
+const COM  = D_COM.split("\n").map(function(r){ return r.split("\t"); });  /* codice, nome, prov */
+const IST  = D_IST.split("\n").map(function(r){ return r.split("\t"); });  /* codice, denominazione */
+const TIP  = D_TIP.split("\n");
+const CAR  = D_CAR.split("\n");
+const WEB  = D_WEB.split("\n");
+const RIGHE = D_SCU.split("\n");
+const N = RIGHE.length;
+
+function n36(s){ return parseInt(s, 36); }
+
+/* Le famiglie di grado servono a dare un ordine leggibile alle quaranta
+   tipologie ministeriali: sono un raggruppamento nostro, non un dato. */
+const FAMIGLIE = [
+  { id:"inf",  nome:"Infanzia",      colore:"--g1" },
+  { id:"pri",  nome:"Primaria",      colore:"--g2" },
+  { id:"sec1", nome:"Secondaria I",  colore:"--g3" },
+  { id:"sec2", nome:"Secondaria II", colore:"--g4" },
+  { id:"comp", nome:"Comprensivi",   colore:"--g5" },
+  { id:"adu",  nome:"Adulti",        colore:"--g6" },
+  { id:"con",  nome:"Convitti",      colore:"--g7" }
+];
+function famigliaDi(t){
+  if (t === "SCUOLA INFANZIA") return 0;
+  if (t === "SCUOLA PRIMARIA") return 1;
+  if (t === "SCUOLA PRIMO GRADO") return 2;
+  if (t === "ISTITUTO COMPRENSIVO") return 4;
+  if (t === "CENTRO TERRITORIALE") return 5;
+  if (t.indexOf("CONVITTO") === 0 || t === "EDUCANDATO") return 6;
+  return 3;
+}
+const FAM_DI_TIP = TIP.map(famigliaDi);
+
+/* --- indici per filtrare in fretta -------------------------------------- */
+const iCom = new Uint16Array(N);
+const iProv = new Uint8Array(N);
+const iFam = new Uint8Array(N);
+const fDir = new Uint8Array(N);
+const chiave = new Array(N);
+const ordina = new Array(N);
+
+for (let i = 0; i < N; i++){
+  const c = RIGHE[i].split("\t");
+  const ic = n36(c[4]);
+  const ip = n36(COM[ic][2]);
+  iCom[i] = ic;
+  iProv[i] = ip;
+  iFam[i] = FAM_DI_TIP[n36(c[6])];
+  fDir[i] = c[9].charAt(0) === "1" ? 1 : 0;
+  chiave[i] = (c[1] + " " + COM[ic][1] + " " + c[0] + " " + PROV[ip][0] + " " + (c[2] || "")).toLowerCase();
+  ordina[i] = COM[ic][1] + "|" + c[1] + "|" + c[0];
+}
+
+/* Ordine stabile: prima il comune, poi il nome. I dati sono tutti ASCII,
+   quindi il confronto semplice basta ed e' molto piu' rapido di localeCompare. */
+let ORDINE = [];
+for (let i = 0; i < N; i++) ORDINE.push(i);
+ORDINE.sort(function(a,b){ return ordina[a] < ordina[b] ? -1 : ordina[a] > ordina[b] ? 1 : 0; });
+
+/* --- lettura di una scuola ---------------------------------------------- */
+function scuola(i){
+  const c = RIGHE[i].split("\t");
+  const ic = n36(c[4]);
+  const ip = n36(COM[ic][2]);
+  const ii = n36(c[5]);
+  return {
+    codice: c[0],
+    nome: c[1] || "",
+    indirizzo: c[2] || "",
+    cap: c[3] || "",
+    comuneCod: COM[ic][0],
+    comune: COM[ic][1],
+    provincia: PROV[ip][0],
+    regione: PROV[ip][1],
+    area: PROV[ip][2],
+    istCod: IST[ii][0],
+    istNome: IST[ii][1] || "",
+    tipologia: TIP[n36(c[6])],
+    caratteristica: CAR[n36(c[7])],
+    sito: WEB[n36(c[8])] || "",
+    direttivo: c[9].charAt(0) === "1",
+    sede: c[9].charAt(1) === "1",
+    email: (c[10] === "-" ? "" : (c[10] || IST[ii][0] + "@istruzione.it")),
+    emailRicavata: !c[10],
+    pec: c[11] || "",
+    omni: c[12] || ""
+  };
+}
+</script>
+
+<script>
+/* --- utilita' ----------------------------------------------------------- */
+function esc(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function num(n){ return n.toLocaleString("it-IT"); }
+/* Il ministero deposita tutto in maiuscolo. Rimetterlo in tondo lo rende
+   leggibile, ma due categorie di parole vanno lasciate stare: le sigle
+   scolastiche, che sono nomi, e le preposizioni, che in mezzo a un nome
+   proprio si scrivono minuscole. */
+const SIGLE = /^(IC|ICS|IM|SM|SMS|DD|CD|CTP|CPIA|IIS|IISS|ITI|ITIS|ITC|ITCG|ITG|ITE|ITT|ITAS|ITN|IPA|IPAA|IPC|IPIA|IPSS|IPSIA|IPSAR|IPSSAR|IPSEOA|IPSCT|ISA|ISIS|LS|LC|LSS|CFP|IAL|SNC|SS|SP|SR|SNC)$/;
+const PICCOLE = /^(DI|DA|DE|DEL|DELL|DELLA|DELLE|DELLO|DEI|DEGLI|DAL|DALLA|DALLE|AL|ALLA|ALLE|AI|AGLI|IL|LO|LA|LE|GLI|IN|CON|SU|PER|TRA|FRA|ED|E|A|D)$/;
+function maiuscolette(s){
+  let primo = true;
+  return s.replace(/[A-Z]+/g, function(p){
+    const iniziale = primo; primo = false;
+    if (p.length === 1) return p;
+    if (SIGLE.test(p)) return p;
+    if (!iniziale && PICCOLE.test(p)) return p.toLowerCase();
+    return p.charAt(0) + p.slice(1).toLowerCase();
+  });
+}
+function indirizzoWeb(s){
+  if (!s) return "";
+  let u = s.trim();
+  if (/^https?:\/\//i.test(u)) return u;
+  u = u.replace(/^https?[:/]*/i, "");
+  return "https://" + u;
+}
+function vuoto(t){ return '<span class="vuoto">' + t + "</span>"; }
+
+/* --- stato -------------------------------------------------------------- */
+const F = { q:"", regione:"", provincia:"", famiglia:-1 };
+const PASSO = 24;
+let risultati = [];
+let mostrate = 0;
+
+const el = {
+  q: document.getElementById("q"),
+  pulisci: document.getElementById("pulisci"),
+  fregione: document.getElementById("fregione"),
+  fprovincia: document.getElementById("fprovincia"),
+  gradi: document.getElementById("gradi"),
+  elenco: document.getElementById("elenco"),
+  avviso: document.getElementById("avviso"),
+  altre: document.getElementById("altre"),
+  ancora: document.getElementById("ancora"),
+  conteggio: document.getElementById("conteggio"),
+  parola: document.getElementById("parola"),
+  su: document.getElementById("su"),
+  avvisocopia: document.getElementById("avvisocopia")
+};
+
+/* --- comandi ------------------------------------------------------------ */
+document.getElementById("anno").textContent = D_ANNO.slice(0,4) + "/" + D_ANNO.slice(4);
+document.getElementById("totale").textContent = num(N);
+
+const REGIONI = [];
+PROV.forEach(function(p){ if (REGIONI.indexOf(p[1]) < 0) REGIONI.push(p[1]); });
+REGIONI.sort();
+REGIONI.forEach(function(r){
+  const o = document.createElement("option");
+  o.value = r; o.textContent = maiuscolette(r);
+  el.fregione.appendChild(o);
+});
+
+function popolaProvince(){
+  const scelta = F.provincia;
+  el.fprovincia.innerHTML = '<option value="">Tutte le province</option>';
+  const lista = PROV.map(function(p, i){ return { nome:p[0], reg:p[1], i:i }; })
+    .filter(function(p){ return !F.regione || p.reg === F.regione; })
+    .sort(function(a,b){ return a.nome < b.nome ? -1 : 1; });
+  lista.forEach(function(p){
+    const o = document.createElement("option");
+    o.value = String(p.i); o.textContent = maiuscolette(p.nome);
+    el.fprovincia.appendChild(o);
+  });
+  if (scelta && lista.some(function(p){ return String(p.i) === scelta; })) el.fprovincia.value = scelta;
+  else F.provincia = "";
+}
+popolaProvince();
+
+FAMIGLIE.forEach(function(f, i){
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "grado";
+  b.setAttribute("aria-pressed", "false");
+  b.innerHTML = '<span class="pallino" style="background:var(' + f.colore + ')"></span>' + esc(f.nome);
+  b.addEventListener("click", function(){
+    F.famiglia = (F.famiglia === i) ? -1 : i;
+    Array.prototype.forEach.call(el.gradi.children, function(x, j){
+      x.setAttribute("aria-pressed", j === F.famiglia ? "true" : "false");
+    });
+    aggiorna();
+  });
+  el.gradi.appendChild(b);
+});
+
+/* --- filtro ------------------------------------------------------------- */
+function filtra(){
+  const parole = F.q.toLowerCase().split(/\s+/).filter(Boolean);
+  const prov = F.provincia === "" ? -1 : parseInt(F.provincia, 10);
+  const out = [];
+  for (let k = 0; k < ORDINE.length; k++){
+    const i = ORDINE[k];
+    if (prov >= 0 && iProv[i] !== prov) continue;
+    if (F.regione && PROV[iProv[i]][1] !== F.regione) continue;
+    if (F.famiglia >= 0 && iFam[i] !== F.famiglia) continue;
+    if (parole.length){
+      const c = chiave[i];
+      let ok = true;
+      for (let p = 0; p < parole.length; p++){
+        if (c.indexOf(parole[p]) < 0){ ok = false; break; }
+      }
+      if (!ok) continue;
+    }
+    out.push(i);
+  }
+  return out;
+}
+
+/* --- la scheda ---------------------------------------------------------- */
+function voce(etichetta, valore){
+  return '<div class="voce"><div class="et">' + etichetta + '</div><div class="vl">' + valore + "</div></div>";
+}
+
+function scheda(i){
+  const s = scuola(i);
+  const fam = FAMIGLIE[iFam[i]];
+  const colore = "var(" + fam.colore + ")";
+  const nome = s.nome ? maiuscolette(s.nome) : "Denominazione non depositata";
+
+  let tag = '<span class="tag" style="color:' + colore + '">' + esc(maiuscolette(s.tipologia)) + "</span>";
+  if (s.caratteristica !== "NORMALE") tag += '<span class="tag neutro">' + esc(maiuscolette(s.caratteristica)) + "</span>";
+  if (s.direttivo) tag += '<span class="tag neutro">Sede direttiva</span>';
+  if (!s.sede) tag += '<span class="tag neutro">Non sede scolastica</span>';
+
+  const luogo = (s.indirizzo ? esc(maiuscolette(s.indirizzo)) + "<br>" : "")
+    + (s.cap ? esc(s.cap) + " " : "") + esc(maiuscolette(s.comune))
+    + " (" + esc(maiuscolette(s.provincia)) + ")"
+    + (s.indirizzo ? "" : "<br>" + vuoto("via e numero civico non depositati"));
+
+  let voci = "";
+  voci += voce("Dove", luogo);
+  voci += voce("Territorio", esc(maiuscolette(s.regione)) + " &middot; " + esc(maiuscolette(s.area))
+    + '<span class="ricavata">Codice catastale del comune: <span class="mono">' + esc(s.comuneCod) + "</span></span>");
+  voci += voce("Istituto", esc(maiuscolette(s.istNome) || "-")
+    + '<span class="ricavata"><span class="mono">' + esc(s.istCod) + "</span></span>");
+  voci += voce("Posta", s.email
+    ? '<a href="mailto:' + esc(s.email) + '">' + esc(s.email) + "</a>"
+      + (s.emailRicavata ? '<span class="ricavata">ricostruita dal codice dell&rsquo;istituto</span>' : "")
+    : vuoto("non depositata"));
+  voci += voce("PEC", s.pec ? '<a href="mailto:' + esc(s.pec) + '">' + esc(s.pec) + "</a>" : vuoto("non depositata"));
+  voci += voce("Sito", s.sito
+    ? '<a href="' + esc(indirizzoWeb(s.sito)) + '" target="_blank" rel="noopener">' + esc(s.sito) + "</a>"
+    : vuoto("non depositato"));
+  voci += voce("Tipologia", esc(maiuscolette(s.tipologia)));
+  voci += voce("Caratteristica", esc(maiuscolette(s.caratteristica)));
+  voci += voce("Sede direttiva", s.direttivo ? "S&igrave;" : "No");
+  voci += voce("Sede scolastica", s.sede ? "S&igrave;" : "No");
+  voci += voce("Omnicomprensivo", s.omni ? '<span class="mono">' + esc(s.omni) + "</span>" : vuoto("non indicato"));
+
+  const mappa = "https://www.google.com/maps/search/?api=1&query="
+    + encodeURIComponent((s.indirizzo ? s.indirizzo + ", " : "") + s.cap + " " + s.comune + " " + s.provincia);
+
+  let azioni = '<a class="azione" href="' + esc(mappa) + '" target="_blank" rel="noopener">Mappa</a>';
+  if (s.email) azioni += '<a class="azione" href="mailto:' + esc(s.email) + '">Scrivi</a>';
+  if (s.sito) azioni += '<a class="azione" href="' + esc(indirizzoWeb(s.sito)) + '" target="_blank" rel="noopener">Sito</a>';
+
+  return '<article class="scheda">'
+    + '<div class="fascia" style="background:' + colore + '"></div>'
+    + '<div class="intestazione">'
+    +   '<h2 class="nome">' + esc(nome) + "</h2>"
+    +   '<div class="riga-tag">' + tag + "</div>"
+    +   '<button class="codice" type="button" data-codice="' + esc(s.codice) + '">'
+    +     "<small>Meccanografico</small>" + esc(s.codice) + "</button>"
+    + "</div>"
+    + '<div class="corpo">' + voci + "</div>"
+    + '<div class="azioni">' + azioni + "</div>"
+    + "</article>";
+}
+
+/* --- disegno ------------------------------------------------------------ */
+function disegnaAltre(){
+  const fino = Math.min(mostrate + PASSO, risultati.length);
+  let html = "";
+  for (let k = mostrate; k < fino; k++) html += scheda(risultati[k]);
+  el.elenco.insertAdjacentHTML("beforeend", html);
+  mostrate = fino;
+  el.altre.hidden = mostrate >= risultati.length;
+  el.ancora.textContent = "Mostra altre " + Math.min(PASSO, risultati.length - mostrate) + " schede";
+}
+
+function aggiorna(){
+  risultati = filtra();
+  mostrate = 0;
+  el.elenco.innerHTML = "";
+  el.conteggio.textContent = num(risultati.length);
+  el.parola.textContent = risultati.length === 1 ? "scuola" : "scuole";
+  el.pulisci.hidden = !F.q;
+  if (!risultati.length){
+    el.avviso.hidden = false;
+    el.avviso.innerHTML = "<strong>Nessuna scuola con questi filtri</strong>Prova con meno parole, o togli la provincia.";
+    el.altre.hidden = true;
+    return;
+  }
+  el.avviso.hidden = true;
+  disegnaAltre();
+  window.scrollTo(0, 0);
+}
+
+/* --- eventi ------------------------------------------------------------- */
+let attesa = 0;
+el.q.addEventListener("input", function(){
+  clearTimeout(attesa);
+  attesa = setTimeout(function(){ F.q = el.q.value.trim(); aggiorna(); }, 140);
+});
+el.pulisci.addEventListener("click", function(){ el.q.value = ""; F.q = ""; aggiorna(); el.q.focus(); });
+el.fregione.addEventListener("change", function(){
+  F.regione = el.fregione.value; popolaProvince(); aggiorna();
+});
+el.fprovincia.addEventListener("change", function(){ F.provincia = el.fprovincia.value; aggiorna(); });
+el.ancora.addEventListener("click", disegnaAltre);
+
+el.elenco.addEventListener("click", function(e){
+  const b = e.target.closest(".codice");
+  if (!b) return;
+  const testo = b.getAttribute("data-codice");
+  if (navigator.clipboard) navigator.clipboard.writeText(testo).then(function(){ segnala("Copiato " + testo); }, function(){});
+});
+function segnala(t){
+  el.avvisocopia.textContent = t;
+  el.avvisocopia.classList.add("mostra");
+  setTimeout(function(){ el.avvisocopia.classList.remove("mostra"); }, 1400);
+}
+
+window.addEventListener("scroll", function(){
+  el.su.classList.toggle("visibile", window.scrollY > 900);
+}, { passive:true });
+el.su.addEventListener("click", function(){ window.scrollTo({ top:0, behavior:"smooth" }); });
+
+aggiorna();
+</script>
+</body>
+</html>

@@ -160,8 +160,44 @@ ripetizioni dentro. Il timer sale dal basso come riquadro staccato.
    a un ricaricamento.
 3. Digli in italiano cosa vedrà di diverso, e che deve ricaricare due volte.
 
+## La pagina delle scuole — `scuole.html`
+
+Cosa c'entra con la palestra: niente. Manlio ha portato il CSV dell'anagrafe
+delle scuole statali del ministero (50.273 sedi, anno 2026/27) e ha chiesto una
+scheda per riga, con tutti i dati, impaginata bene. Sta qui perché qui c'era già
+un sito pubblicato: `https://manliograndi-del.github.io/palestra/scuole.html`.
+
+**Non tocca l'app della palestra e non salva niente.** Nessuna chiave in
+`localStorage`, nessuna modifica a `index.html`, `sw.js` o al manifest. Se un
+giorno dà fastidio, si cancella il file e la palestra non se ne accorge.
+
+Un file solo, come il resto: dentro ci sono anche i dati. Il CSV del ministero
+pesa 13 MB perché ripete migliaia di volte gli stessi comuni e istituti; qui le
+colonne ripetute diventano dizionari e ogni scuola è una riga di indici, così la
+pagina sta in 4,5 MB e funziona anche senza rete. La pagina si costruisce da due
+pezzi:
+
+- `strumenti/scuole-modello.html` — la pagina vera (grafica e programma), con il
+  segnaposto `/*DATI*/` dove finiscono i dati. **È qui che si modifica.**
+- `strumenti/scuole-impacchetta.py` — legge il CSV ministeriale e scrive
+  `scuole.html`: `python3 strumenti/scuole-impacchetta.py anagrafe.csv`
+
+`scuole.html` è generato: non modificarlo a mano, si riscrive al primo lancio
+dello script. Quando esce il CSV dell'anno nuovo basta rilanciare lo script.
+
+Scelte già prese: il colore dice il grado di istruzione e nient'altro, dal più
+chiaro (infanzia) al più scuro (secondaria di secondo grado); le tre famiglie
+fuori scala (comprensivi, adulti, convitti) hanno tinte spente apposta. Il
+ministero scrive tutto in maiuscolo e la pagina lo rimette in tondo, lasciando
+stare le sigle (IC, ITIS, CPIA) e abbassando le preposizioni. Dove il ministero
+non ha compilato un campo la scheda scrive «non depositata» invece di far finta
+di niente; l'unica cosa ricostruita è la posta elettronica, che in 49.341 casi su
+50.273 è `CODICEISTITUTO@istruzione.it`, e la scheda dichiara di averla ricavata.
+
 ## File del repo
 
-- `index.html` — tutta l'app
+- `index.html` — tutta l'app della palestra
 - `sw.js` — funzionamento offline; alzare il numero di cache a ogni rilascio
 - `manifest.webmanifest` · `icon-192.png` · `icon-512.png`
+- `scuole.html` — anagrafe delle scuole statali (generato, vedi sopra)
+- `strumenti/` — il modello e lo script che generano `scuole.html`
