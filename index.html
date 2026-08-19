@@ -139,6 +139,25 @@ input{font-family:inherit}
 .barra{position:fixed;bottom:0;left:0;right:0;display:flex;background:#0A0A0A;border-top:1px solid var(--linea);max-width:560px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom);z-index:30}
 .b-voce{flex:1;padding:16px 4px;font-size:11.5px;color:var(--tenue);font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-top:none}
 .b-voce.on{color:var(--su-rosso);background:var(--rosso);font-weight:800}
+
+/* riepilogo del mese */
+.mese-nav{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mese-tit{font-size:19px;font-weight:900;text-transform:uppercase;letter-spacing:-.02em;text-align:center;flex:1}
+.mese-f{width:44px;height:44px;border-radius:50%;background:var(--superficie2);color:var(--inchiostro);font-size:22px;line-height:1;flex-shrink:0}
+.mese-f[disabled]{opacity:.28}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:16px}
+.cal-h{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--tenue);text-align:center;padding-bottom:3px}
+.cal-g{aspect-ratio:1;border-radius:10px;background:var(--superficie2);color:var(--tenue);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;display:flex;align-items:center;justify-content:center;transition:background .18s}
+.cal-g[disabled]{opacity:.5}
+.cal-g.on{background:var(--rosso);color:var(--su-rosso);font-weight:800}
+.cal-g.sel{outline:2px solid var(--inchiostro);outline-offset:2px}
+.riep{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid var(--linea)}
+.riep .etichetta{font-size:9.5px;letter-spacing:.08em}
+.riep-n{font-size:23px;font-weight:900;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin-top:5px}
+.riep-n span{font-size:12px;font-weight:400;color:var(--tenue)}
+.dett-testa{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:18px;padding-top:15px;border-top:1px solid var(--linea)}
+.mese-x{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--tenue);border:1px solid var(--linea);border-radius:99px;padding:7px 12px}
+.sed.sel{outline:2px solid var(--rosso);outline-offset:-2px;border-radius:10px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -218,7 +237,7 @@ var S={
   pesi:{},            // nome esercizio -> kg di oggi
   pesiPrec:{},        // ultimi kg registrati
   cardio:{},          // indice -> true se completato
-  indice:{}, riposo:60, schermo:true, ultimo:null, schedaV:SCHEDA_V,
+  indice:{}, riposo:60, schermo:true, ultimo:null, schedaV:SCHEDA_V, mese:null,
   msg:null, spia:"", focus:null, aperto:null, apertoS:null, export:"", importa:""
 };
 
@@ -461,30 +480,97 @@ function vAllenamento(){
   return h;
 }
 
-function vStorico(){
-  var g=Object.keys(S.indice).sort().reverse();
-  if(!g.length) return '<div class="vuoto">Nessuna seduta ancora. Appena spunti la prima serie, questa pagina comincia a riempirsi.</div>';
-  var h="", n30=g.slice(0,30);
-  h+='<section class="pannello"><div class="etichetta">Ultime sedute</div>'+
-     '<div class="avanz" style="margin-top:8px"><span class="sotto">'+g.length+' sedute registrate</span>'+
-     '<span class="avanz-c">'+n30.filter(function(d){return S.indice[d].giorno===1;}).length+
-     '<span> G1 · '+n30.filter(function(d){return S.indice[d].giorno===2;}).length+' G2</span></span></div></section>';
-  g.forEach(function(d){
-    var v=S.indice[d];
-    h+='<div class="gruppo"><button class="sed" data-az="apri" data-d="'+d+'"><div>'+
-       '<div class="sed-d">'+dataEstesa(d)+'</div>'+
-       '<div class="sed-m">'+(SCHEDA[v.giorno]||SCHEDA[1]).nome+' · '+v.serie+' di '+v.tot+' serie</div></div>'+
-       '<div class="sed-k">'+(v.volume?num(v.volume)+" kg":"—")+'</div></button>';
-    if(S.aperto===d&&S.apertoS){
-      h+='<div class="dett">';
-      (SCHEDA[S.apertoS.giorno]||SCHEDA[1]).es.forEach(function(e,i){
-        if(e.t==="cardio"){ if(S.apertoS.cardio&&S.apertoS.cardio[i]) h+='<div class="dett-v"><span>'+esc(e.n)+'</span><span>'+e.min+"'"+'</span></div>'; return; }
-        var f=0; for(var j=0;j<e.set;j++) if(S.apertoS.fatte&&S.apertoS.fatte[i+"-"+j]) f++;
-        if(f) h+='<div class="dett-v"><span>'+esc(e.n)+'</span><span>'+f+'×'+e.rip+
-                 (S.apertoS.pesi&&S.apertoS.pesi[e.n]?' · '+num(S.apertoS.pesi[e.n],1)+' kg':'')+'</span></div>';
-      });
-      h+='</div>';
+function meseDi(iso){ return iso.slice(0,7); }
+function meseNome(m){ var a=m.split("-"); return MM[Number(a[1])-1]+" "+a[0]; }
+function meseSposta(m,passi){
+  var a=Number(m.slice(0,4)), me=Number(m.slice(5,7))-1+passi;
+  a+=Math.floor(me/12); me=((me%12)+12)%12;
+  return a+"-"+p2(me+1);
+}
+
+/* Il dettaglio di una seduta. Sta in una funzione sola perché lo aprono sia il
+   calendario del mese sia l'elenco di tutte le sedute. */
+function dettaglioSeduta(s){
+  if(!s) return '<div class="dett"><div class="dett-v"><span>Nessun dettaglio salvato per questo giorno.</span></div></div>';
+  var h='<div class="dett">', righe=0;
+  (SCHEDA[s.giorno]||SCHEDA[1]).es.forEach(function(e,i){
+    if(e.t==="cardio"){
+      if(s.cardio&&s.cardio[i]){ h+='<div class="dett-v"><span>'+esc(e.n)+'</span><span>'+e.min+"'"+'</span></div>'; righe++; }
+      return;
     }
+    var f=0; for(var j=0;j<e.set;j++) if(s.fatte&&s.fatte[i+"-"+j]) f++;
+    if(f){
+      h+='<div class="dett-v"><span>'+esc(e.n)+'</span><span>'+f+'\u00d7'+e.rip+
+         (s.pesi&&s.pesi[e.n]?' \u00b7 '+num(s.pesi[e.n],1)+' kg':'')+'</span></div>';
+      righe++;
+    }
+  });
+  if(!righe) h+='<div class="dett-v"><span>Seduta aperta ma nessuna serie spuntata.</span></div>';
+  return h+'</div>';
+}
+
+function vStorico(){
+  var tutte=Object.keys(S.indice).sort();
+  if(!tutte.length) return '<div class="vuoto">Nessuna seduta ancora. Appena spunti la prima serie, questa pagina comincia a riempirsi.</div>';
+
+  /* Si naviga mese per mese fra il primo allenamento e il mese corrente, anche sui
+     mesi vuoti: un mese senza rossi dice quanto uno pieno. */
+  var primoMese=meseDi(tutte[0]), ultimoMese=meseDi(oggiISO());
+  if(ultimoMese<primoMese) ultimoMese=primoMese;
+  var mese=S.mese||meseDi(oggiISO());
+  if(mese<primoMese) mese=primoMese;
+  if(mese>ultimoMese) mese=ultimoMese;
+
+  var anno=Number(mese.slice(0,4)), nm=Number(mese.slice(5,7));
+  var quanti=new Date(anno,nm,0).getDate();
+  var scarto=(new Date(anno,nm-1,1).getDay()+6)%7;   /* la settimana comincia di lunedì */
+
+  var delMese=tutte.filter(function(d){ return meseDi(d)===mese; });
+  var serie=0, volume=0;
+  delMese.forEach(function(d){ serie+=S.indice[d].serie||0; volume+=S.indice[d].volume||0; });
+
+  var h='<section class="pannello">';
+  h+='<div class="mese-nav">'+
+     '<button class="mese-f" data-az="mese" data-v="'+meseSposta(mese,-1)+'"'+(mese<=primoMese?' disabled':'')+'>\u2039</button>'+
+     '<div class="mese-tit">'+meseNome(mese)+'</div>'+
+     '<button class="mese-f" data-az="mese" data-v="'+meseSposta(mese,1)+'"'+(mese>=ultimoMese?' disabled':'')+'>\u203a</button>'+
+     '</div>';
+
+  h+='<div class="cal">';
+  ["L","M","M","G","V","S","D"].forEach(function(x){ h+='<div class="cal-h">'+x+'</div>'; });
+  for(var v=0;v<scarto;v++) h+='<div></div>';
+  for(var g=1;g<=quanti;g++){
+    var iso=anno+"-"+p2(nm)+"-"+p2(g);
+    var fatto=!!S.indice[iso];
+    h+='<button class="cal-g'+(fatto?" on":"")+(S.aperto===iso?" sel":"")+'"'+
+       (fatto?' data-az="apri" data-d="'+iso+'"':' disabled')+'>'+g+'</button>';
+  }
+  h+='</div>';
+
+  h+='<div class="riep">'+
+     '<div><div class="etichetta">Allenamenti</div><div class="riep-n">'+delMese.length+'</div></div>'+
+     '<div><div class="etichetta">Serie</div><div class="riep-n">'+serie+'</div></div>'+
+     '<div><div class="etichetta">Volume</div><div class="riep-n">'+num(volume)+'<span> kg</span></div></div>'+
+     '</div>';
+  h+='<div class="nota">'+(delMese.length===0
+      ? "In questo mese non hai ancora registrato niente."
+      : "Ti sei allenato "+delMese.length+(delMese.length===1?" volta":" volte")+" in "+meseNome(mese)+
+        ". Tocca un giorno rosso per vedere cosa hai fatto.")+'</div>';
+  if(S.aperto&&meseDi(S.aperto)===mese){
+    h+='<div class="dett-testa"><span class="etichetta">'+dataEstesa(S.aperto)+'</span>'+
+       '<button class="mese-x" data-az="apri" data-d="'+S.aperto+'">chiudi</button></div>'+
+       dettaglioSeduta(S.apertoS);
+  }
+  h+='</section>';
+
+  h+='<section class="pannello"><div class="etichetta">Tutte le sedute ('+tutte.length+')</div></section>';
+  tutte.slice().reverse().forEach(function(d){
+    var vv=S.indice[d];
+    h+='<div class="gruppo"><button class="sed'+(S.aperto===d?" sel":"")+'" data-az="apri" data-d="'+d+'"><div>'+
+       '<div class="sed-d">'+dataEstesa(d)+'</div>'+
+       '<div class="sed-m">'+vv.serie+' di '+vv.tot+' serie</div></div>'+
+       '<div class="sed-k">'+(vv.volume?num(vv.volume)+" kg":"\u2014")+'</div></button>';
+    if(S.aperto===d&&meseDi(d)!==mese) h+=dettaglioSeduta(S.apertoS);
     h+='</div>';
   });
   return h;
@@ -524,6 +610,7 @@ document.body.addEventListener("click",function(ev){
 
   if(az==="vista"){ S.vista=v; S.focus=null; render(); }
   else if(az==="chiudi-msg"){ S.msg=null; render(); }
+  else if(az==="mese"){ S.mese=v; S.aperto=null; S.apertoS=null; render(); }
   else if(az==="set"){
     var i=b.getAttribute("data-i"), j=b.getAttribute("data-j"), k=i+"-"+j;
     var e=SCHEDA[S.giorno].es[Number(i)];
@@ -545,7 +632,7 @@ document.body.addEventListener("click",function(ev){
   }
   else if(az==="apri"){
     var d=b.getAttribute("data-d");
-    if(S.aperto===d){S.aperto=null;S.apertoS=null;} else {S.aperto=d;S.apertoS=leggi(K_S+d,null);}
+    if(S.aperto===d){S.aperto=null;S.apertoS=null;} else {S.aperto=d;S.apertoS=leggi(K_S+d,null);S.mese=d.slice(0,7);}
     render();
   }
   else if(az==="sw-schermo"){ S.schermo=!S.schermo; schermoAcceso(S.schermo); salvaCfg(); render(); }

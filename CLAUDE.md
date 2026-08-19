@@ -109,8 +109,17 @@ Non usare mai chiavi senza prefisso `palestra.`.
 - Il segnale è vibrazione + tre bip a 880 Hz.
 - **Il volume** è la somma di `kg × ripetizioni` sulle serie spuntate. Serve a dare un
   numero unico di confronto fra sedute.
-- Cambiare giorno con serie già spuntate è impedito di proposito: mescolerebbe due schede
-  nella stessa seduta.
+- **Lo Storico si apre su un riepilogo mensile** (chiesto il 2026-08-18): calendario del
+  mese con i giorni allenati in rosso, frecce per spostarsi, e sotto i totali del mese —
+  allenamenti, serie, volume. Si naviga anche sui mesi vuoti fra il primo allenamento e
+  il mese corrente: un mese senza rossi dice quanto uno pieno.
+  I giorni rossi si toccano e aprono il dettaglio lì sotto; quelli senza allenamento sono
+  `disabled`, e la differenza si vede (rosso pieno contro grigio spento) — non è un
+  bersaglio muto come quelli che gli avevano fatto credere rotto il Diario.
+  Il dettaglio di una seduta sta in `dettaglioSeduta()`, usata sia dal calendario sia
+  dall'elenco sotto: se la cambi, cambiano tutti e due.
+- Cambiare giorno con serie già spuntate era impedito di proposito, quando i giorni erano
+  due. Ora il programma è unico e la scelta non esiste più.
 
 ## Aspetto
 
