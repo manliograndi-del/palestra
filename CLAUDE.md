@@ -183,10 +183,10 @@ la pagina dell'app.
 
 ## La seduta che arriva dall'orologio
 
-Prevista per l'app da polso (Wear OS), disegnata insieme a lui il 2026-08-24 e
-approvata schermata per schermata. **Questa metà — quella del telefono — è già
-scritta e provata; l'app dell'orologio no.** Finché non esiste, questo pezzo dorme:
-senza messaggio non compare niente.
+Disegnata insieme a lui il 2026-08-24 e approvata schermata per schermata.
+**La metà del telefono è provata qui; l'app da polso no** — in questa sessione non
+c'è l'SDK di Android e i server da cui si scarica sono bloccati, quindi il codice
+Kotlin non è mai stato compilato in locale. Lo compila GitHub (vedi sotto).
 
 L'orologio **non parla con questa pagina**: apre un indirizzo sul telefono con la
 seduta scritta dentro (`RemoteActivityHelper` di Wear OS, che apre una URL sul
@@ -214,6 +214,32 @@ Regole decise con lui:
   ricaricamento rimetterebbe in mezzo la stessa proposta a giorni di distanza;
 - c'è un ascolto su `hashchange`: se l'app è già aperta il telefono non la ricarica,
   cambia solo l'indirizzo, e senza quello il messaggio non comparirebbe mai.
+
+## L'app da polso — cartella `orologio/`
+
+Kotlin, **niente Compose**, una dipendenza sola (`wear-remote-interactions`, che
+serve solo ad aprire una pagina sul telefono). La scelta è deliberata: il codice di
+là non lo posso provare, quindi meno pezzi ci sono, meno cose si rompono. L'interfaccia
+è costruita a mano con le View e **si ridisegna tutta a ogni tocco**, come fa la
+Palestra sul telefono.
+
+- **Gli indici di `SCHEDA` devono restare identici** a quelli di `index.html`: il
+  messaggio usa le stesse chiavi `indice-serie`. Se riordini di qua, riordina di là e
+  alza `OROLOGIO_V` **da tutte e due le parti**.
+- **Lo stesso APK si installa anche sul telefono** (`uses-feature ... required="false"`).
+  Sul telefono non c'è nessun polso a cui mandare la seduta, quindi apre la Palestra
+  direttamente: è così che si prova tutta la catena senza orologio e senza cavi.
+- I chili sull'orologio **non ci sono proprio**: non esiste un canale telefono→polso
+  senza un'app installata sul telefono, e non ne vogliamo una. Li mette il telefono
+  quando registra, prendendo quelli di riferimento.
+- La seduta resta nelle SharedPreferences finché non è stata mandata: al cambio di
+  giorno, se non è partita, viene riproposta invece che buttata.
+
+**La compilazione la fa GitHub** (`.github/workflows/orologio.yml`) a ogni modifica
+dentro `orologio/`, e pubblica sempre allo stesso indirizzo:
+`https://github.com/manliograndi-del/palestra/releases/download/orologio/palestra-orologio.apk`
+È l'unico modo di avere un APK da questa sessione. Se il file non si aggiorna, guarda
+i log dell'azione prima di dare la colpa al telefono.
 
 ## Aspetto
 
