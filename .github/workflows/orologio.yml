@@ -1,0 +1,52 @@
+# Compila l'app da polso e ne pubblica l'APK, perché la sessione in cui viene
+# scritta non ha l'SDK di Android e non può compilare niente.
+# Il file da scaricare resta sempre allo stesso indirizzo:
+#   https://github.com/manliograndi-del/palestra/releases/download/orologio/palestra-orologio.apk
+name: APK dell'orologio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'orologio/**'
+      - '.github/workflows/orologio.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Pezzi dell'SDK
+        run: sdkmanager --install "platforms;android-34" "build-tools;34.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Compila
+        working-directory: orologio
+        run: gradle --no-daemon assembleDebug
+
+      - name: Prepara il file
+        run: cp orologio/app/build/outputs/apk/debug/app-debug.apk palestra-orologio.apk
+
+      - name: Pubblica l'APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete orologio --yes --cleanup-tag || true
+          gh release create orologio palestra-orologio.apk \
+            --title "Palestra da polso — ultima versione" \
+            --notes "App di prova per Wear OS. Si installa anche sul telefono: lì, invece di mandare la seduta al polso, apre la Palestra in questa stessa pagina."
