@@ -44,6 +44,7 @@ input{font-family:inherit}
 .pannello{background:var(--superficie);border:none;border-radius:var(--raggio);padding:18px}
 .etichetta{font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--tenue)}
 .nota{font-size:12.5px;color:var(--tenue);line-height:1.55;margin-top:9px}
+.nota.male{color:var(--rosso)}
 
 /* scelta del giorno */
 .giorni{display:flex;gap:9px}
@@ -250,7 +251,8 @@ var S={
   cardio:{},          // indice -> true se completato
   indice:{}, riposo:60, schermo:true, ultimo:null, schedaV:SCHEDA_V, mese:null, carico:null,
   pesiRif:{},         // i carichi della seduta precedente: proposta e termine di paragone
-  msg:null, spia:"", focus:null, aperto:null, apertoS:null, export:"", importa:""
+  msg:null, spia:"", focus:null, aperto:null, apertoS:null, export:"", importa:"",
+  drive:{on:false,id:null,ultimo:null,rev:null}, driveStato:""
 };
 
 /* ---------- avvio ---------- */
@@ -260,6 +262,7 @@ function avvia(){
     S.pesiPrec=cfg.pesiPrec||{}; S.riposo=cfg.riposo||60;
     S.schermo=cfg.schermo!==false; S.ultimo=cfg.ultimo||null;
     S.schedaV=cfg.schedaV||1;   /* senza il numero è una configurazione di prima del riordino */
+    if(cfg.drive) S.drive=Object.assign({on:false,id:null,ultimo:null,rev:null},cfg.drive);
   }
   migraSedute();
   S.indice=leggi(K_IDX,{})||{};
@@ -281,7 +284,7 @@ function calcolaRiferimenti(){
   if(ult&&ult.pesi) S.pesiRif=ult.pesi;
 }
 
-function salvaCfg(){ scrivi(K_CFG,{pesiPrec:S.pesiPrec,riposo:S.riposo,schermo:S.schermo,ultimo:S.ultimo,schedaV:S.schedaV}); }
+function salvaCfg(){ scrivi(K_CFG,{pesiPrec:S.pesiPrec,riposo:S.riposo,schermo:S.schermo,ultimo:S.ultimo,schedaV:S.schedaV,drive:S.drive}); }
 
 /* Rinumera le sedute salvate dopo un riordino della scheda. Gira una volta
    sola per versione e il numero resta in `palestra.config` come `schedaV`.
@@ -351,6 +354,7 @@ function salva(){
     S.ultimo=S.giorno; salvaCfg();
     S.spia=ok?"salvato":"non salvato"; spiaAgg();
     setTimeout(function(){S.spia="";spiaAgg();},1500);
+    driveFraPoco();
   },400);
 }
 function spiaAgg(){var e=document.querySelector(".spia");if(e)e.textContent=S.spia;}
@@ -685,6 +689,27 @@ function vImpostazioni(){
      '<div class="nota">Toccalo una volta prima di cominciare, così il telefono autorizza il suono.</div>'+
      '<button class="b2" data-az="prova">Fai suonare adesso</button></section>';
 
+  h+='<section class="pannello"><div class="etichetta">Copia su Google Drive</div>';
+  if(!S.drive.on){
+    h+='<div class="nota">I carichi e le sedute si copiano da soli nel tuo Google Drive, in un file che resta tuo. Il permesso si dà una volta e vale <strong>solo per quel file</strong>. Senza rete non cambia niente: in palestra l\'app funziona come sempre.</div>'+
+       '<button class="b1" data-az="drive-collega">Collega Google Drive</button>';
+  } else {
+    h+='<div class="nota">Ultima copia: <strong>'+quandoSalvato(S.drive.ultimo)+'</strong>. Si rifà da sola quando apri l\'app e dopo che hai spuntato qualcosa.</div>'+
+       '<button class="b1" data-az="drive-salva">Copia adesso</button>'+
+       '<button class="b2" data-az="drive-riprendi">Riprendi le sedute da Drive</button>'+
+       '<button class="b2" data-az="drive-scollega">Scollega</button>';
+  }
+  if(S.driveStato==="corso")    h+='<div class="nota">Sto parlando con Google…</div>';
+  if(S.driveStato==="fatto")    h+='<div class="nota">Copia salvata su Drive.</div>';
+  if(S.driveStato==="rete")     h+='<div class="nota">Nessuna rete: riprovo da solo la prossima volta.</div>';
+  if(S.driveStato==="vuoto")    h+='<div class="nota male">Su Drive non c\'è ancora nessuna copia.</div>';
+  if(S.driveStato==="riprendi") h+='<div class="nota male">Su Drive c\'è una copia, ma <strong>qui non c\'è nessuna seduta</strong>: non l\'ho sovrascritta. Tocca "Riprendi le sedute da Drive".</div>';
+  if(S.driveStato==="quivuoto") h+='<div class="nota">Collegato. Non c\'è ancora nessuna seduta: la prima copia partirà appena spunti una serie.</div>';
+  if(S.driveStato==="altrove")  h+='<div class="nota male">Su Drive c\'è una copia <strong>più nuova di questa</strong>, fatta da un altro dispositivo. Non l\'ho toccata. Se quella giusta è là, tocca "Riprendi le sedute da Drive"; se la più giusta è questa, scollega e ricollega.</div>';
+  if(S.driveStato==="permesso") h+='<div class="nota male">Permesso non dato o scaduto. Tocca "Collega Google Drive" e conferma.</div>';
+  if(S.driveStato==="errore")   h+='<div class="nota male">Google ha risposto male. Riprova fra un momento.</div>';
+  h+='</section>';
+
   h+='<section class="pannello"><div class="etichetta">Copia di sicurezza</div>'+
      '<div class="nota">I dati stanno solo su questo telefono. Se cancelli i dati del browser, spariscono.</div>'+
      '<button class="b1" data-az="scarica">Scarica il file di backup</button>'+
@@ -742,6 +767,9 @@ document.body.addEventListener("click",function(ev){
   else if(az==="prova"){ sbloccaAudio(); setTimeout(segnale,120); }
   else if(az==="esporta"){ S.export=JSON.stringify(raccogli()); render(); }
   else if(az==="scarica"){ scarica(); }
+  else if(az==="drive-collega"||az==="drive-salva"){ driveSalva(true); }
+  else if(az==="drive-riprendi"){ driveRiprendi(); }
+  else if(az==="drive-scollega"){ driveScollega(); }
   else if(az==="importa"){ ripristina(); }
 });
 
@@ -765,6 +793,197 @@ function raccogli(){
   }
   return o;
 }
+/* ---------- copia di sicurezza su Google Drive ----------
+   Le sedute vivono solo dentro questo telefono: se si rompe, è finita. Qui la
+   copia va nel Drive di Manlio, in un file che lui vede e può scaricare.
+
+   Tre cose da non rovinare, in ordine di importanza:
+
+   1. **L'app deve continuare ad aprirsi senza rete.** In palestra il segnale non c'è. Il pezzetto di Google
+      si scarica da Google, quindi si carica SOLO quando serve — mai all'avvio,
+      mai come dipendenza della pagina. Se la rete non c'è, qui fallisce tutto
+      in silenzio e il diario funziona come sempre.
+   2. **Il permesso vive solo in memoria** (`GTOK`): non finisce in
+      localStorage, scade da solo dopo un'ora e si richiede quando serve.
+   3. Il permesso chiesto è `drive.file`: l'app può toccare **soltanto il file
+      che ha creato lei**. Del resto del Drive non vede nemmeno l'esistenza.
+      Non allargare questo permesso: è la ragione per cui Google non pretende
+      di esaminare l'app. */
+var GOOGLE_ID="1065080427514-4ahoui2pq52jd74lvl6f9d5rbnpigc7h.apps.googleusercontent.com";
+var GOOGLE_AMBITO="https://www.googleapis.com/auth/drive.file";
+var DRIVE_NOME="palestra-backup.json";
+var GTOK=null, gsi=null, clienteTok=null, attesaTok=null, tDrive=null;
+
+function caricaGsi(){
+  if(window.google&&window.google.accounts&&window.google.accounts.oauth2) return Promise.resolve();
+  if(gsi) return gsi;
+  gsi=new Promise(function(ok,no){
+    var e=document.createElement("script");
+    e.src="https://accounts.google.com/gsi/client"; e.async=true; e.defer=true;
+    e.onload=function(){ ok(); };
+    e.onerror=function(){ gsi=null; no(erroreDrive("rete")); };
+    document.head.appendChild(e);
+  });
+  return gsi;
+}
+function erroreDrive(tipo,stato){ var e=new Error(tipo); e.tipo=tipo; e.stato=stato||0; return e; }
+
+/* chiede il permesso: "interattivo" apre la finestra di Google, altrimenti
+   prova in silenzio e fallisce senza disturbare */
+function permessoDrive(interattivo){
+  if(GTOK) return Promise.resolve(GTOK);
+  return caricaGsi().then(function(){
+    if(!clienteTok){
+      clienteTok=google.accounts.oauth2.initTokenClient({
+        client_id:GOOGLE_ID, scope:GOOGLE_AMBITO,
+        callback:function(r){
+          var a=attesaTok; attesaTok=null;
+          if(r&&r.access_token){ GTOK=r.access_token; if(a) a.ok(GTOK); }
+          else if(a) a.no(erroreDrive("permesso"));
+        },
+        error_callback:function(){ var a=attesaTok; attesaTok=null; if(a) a.no(erroreDrive("permesso")); }
+      });
+    }
+    return new Promise(function(ok,no){
+      attesaTok={ok:ok,no:no};
+      try{ clienteTok.requestAccessToken({prompt:interattivo?"consent":""}); }
+      catch(e){ attesaTok=null; no(erroreDrive("permesso")); }
+    });
+  });
+}
+
+function chiamaDrive(tok,url,opz){
+  opz=opz||{}; opz.headers=opz.headers||{};
+  opz.headers.Authorization="Bearer "+tok;
+  return fetch(url,opz).then(function(r){
+    if(r.status===401||r.status===403) throw erroreDrive("scaduto",r.status);
+    if(!r.ok) throw erroreDrive("errore",r.status);
+    return r;
+  },function(){ throw erroreDrive("rete"); });
+}
+function driveCerca(tok){
+  var q="name='"+DRIVE_NOME+"' and trashed=false";
+  return chiamaDrive(tok,"https://www.googleapis.com/drive/v3/files?spaces=drive&pageSize=1&fields=files(id)&q="+encodeURIComponent(q))
+    .then(function(r){ return r.json(); })
+    .then(function(d){ return (d.files&&d.files[0])?d.files[0].id:null; });
+}
+function driveScrivi(tok,id,testo){
+  if(id) return chiamaDrive(tok,"https://www.googleapis.com/upload/drive/v3/files/"+id+"?uploadType=media&fields=id,modifiedTime",
+      {method:"PATCH",headers:{"Content-Type":"application/json"},body:testo})
+      .then(function(r){ return r.json(); }).then(function(d){ return {id:id,rev:d.modifiedTime}; });
+  var linea="-diario-"+Date.now();
+  var corpo="--"+linea+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+
+            JSON.stringify({name:DRIVE_NOME,mimeType:"application/json"})+
+            "\r\n--"+linea+"\r\nContent-Type: application/json\r\n\r\n"+testo+"\r\n--"+linea+"--";
+  return chiamaDrive(tok,"https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,modifiedTime",
+      {method:"POST",headers:{"Content-Type":"multipart/related; boundary="+linea},body:corpo})
+    .then(function(r){ return r.json(); }).then(function(d){ return {id:d.id,rev:d.modifiedTime}; });
+}
+function driveQuandoTocca(tok,id){
+  return chiamaDrive(tok,"https://www.googleapis.com/drive/v3/files/"+id+"?fields=modifiedTime")
+    .then(function(r){ return r.json(); }).then(function(d){ return d.modifiedTime; });
+}
+function driveLeggi(tok,id){
+  return chiamaDrive(tok,"https://www.googleapis.com/drive/v3/files/"+id+"?alt=media").then(function(r){ return r.text(); });
+}
+
+/* Una palestra senza sedute non è una copia: è la mancanza di una copia. */
+function palestraVuota(){ return Object.keys(S.indice).length===0&&fatteN()===0&&Object.keys(S.cardio).length===0; }
+
+/* Il salvataggio vero. "interattivo" è vero solo quando è stato lui a
+   chiederlo: in quel caso può comparire la finestra di Google, e gli errori
+   glieli mostriamo. In automatico invece tutto avviene in silenzio.
+
+   **La regola che conta: se qui non c'è nessuna seduta, non si scrive su Drive.**
+   Il caso da temere è proprio quello per cui esiste tutta questa funzione —
+   telefono nuovo, nessuna seduta registrata, lui che tocca "Collega" per primo: senza
+   questo blocco, il vuoto di qui cancellerebbe la copia buona di là, e non ci
+   sarebbe più nessun posto da cui riprenderla. In quel caso ci colleghiamo, ma
+   invece di salvare gli diciamo di premere "Riprendi". */
+function driveSalva(interattivo){
+  if(!interattivo&&!S.drive.on) return Promise.resolve();
+  if(!interattivo&&palestraVuota()) return Promise.resolve();
+  clearTimeout(tDrive); tDrive=null;
+  S.driveStato="corso"; if(S.vista==="impostazioni") render();
+  var riprovato=false;
+  function giro(){
+    return permessoDrive(interattivo&&!GTOK).then(function(tok){
+      var p=S.drive.id?Promise.resolve(S.drive.id):driveCerca(tok);
+      return p.then(function(id){
+        if(palestraVuota()){ return {fermo:true, id:id}; }
+        if(!id) return driveScrivi(tok,null,JSON.stringify(raccogli()));
+        /* Chi ha toccato quel file per ultimo? Se non siamo stati noi, di là c'è
+           roba più nuova — un altro dispositivo — e sovrascriverla la
+           cancellerebbe in silenzio. Meglio fermarsi e dirglielo.
+           `rev` mancante = copia fatta prima di questo controllo: la si accetta
+           una volta sola e da lì in poi il segnaposto c'è. */
+        return driveQuandoTocca(tok,id).then(function(rev){
+          if(S.drive.rev&&rev&&rev!==S.drive.rev) return {fermo:true, id:id, altrove:true};
+          return driveScrivi(tok,id,JSON.stringify(raccogli()));
+        });
+      });
+    });
+  }
+  return giro().catch(function(e){
+    /* un permesso scaduto è la cosa più normale del mondo: si rifà e basta */
+    if(e.tipo==="scaduto"&&!riprovato){ riprovato=true; GTOK=null; return giro(); }
+    throw e;
+  }).then(function(r){
+    S.drive.on=true; S.drive.id=r.id||S.drive.id;
+    if(r.fermo){ S.driveStato=r.altrove?"altrove":(r.id?"riprendi":"quivuoto"); }
+    else { S.drive.rev=r.rev||null; S.drive.ultimo=Date.now(); S.driveStato="fatto"; }
+    salvaCfg(); if(S.vista==="impostazioni") render();
+  }).catch(function(e){
+    S.driveStato=(e.tipo==="permesso"||e.tipo==="scaduto")?"permesso":(e.tipo==="rete"?"rete":"errore");
+    if(S.vista==="impostazioni") render();
+  });
+}
+
+/* Riprendere: il file di Drive prende il posto di quello che c'è qui, con la
+   stessa strada del ripristino da file — così esiste un solo modo di rimettere
+   dentro i dati, già collaudato. */
+function driveRiprendi(){
+  S.driveStato="corso"; render();
+  permessoDrive(!GTOK).then(function(tok){
+    var p=S.drive.id?Promise.resolve(S.drive.id):driveCerca(tok);
+    return p.then(function(id){
+      if(!id) throw erroreDrive("vuoto");
+      S.drive.id=id;
+      return driveQuandoTocca(tok,id).then(function(rev){
+        S.drive.rev=rev||null; S.drive.on=true; salvaCfg();
+        return driveLeggi(tok,id);
+      });
+    });
+  }).then(function(testo){
+    S.driveStato=""; S.importa=testo; ripristina();
+  }).catch(function(e){
+    S.driveStato=e.tipo==="vuoto"?"vuoto":(e.tipo==="rete"?"rete":"permesso");
+    render();
+  });
+}
+function driveScollega(){
+  try{ if(GTOK&&window.google&&google.accounts&&google.accounts.oauth2) google.accounts.oauth2.revoke(GTOK); }catch(e){}
+  GTOK=null; S.drive={on:false,id:null,ultimo:null,rev:null}; S.driveStato="";
+  salvaCfg(); render();
+}
+/* Dopo una voce nuova aspettiamo un minuto prima di risalire su Drive: se sta
+   registrando la cena, riscriverebbe il file cinque volte in due minuti. */
+function driveFraPoco(){
+  if(!S.drive.on) return;
+  clearTimeout(tDrive);
+  tDrive=setTimeout(function(){ driveSalva(false); },60000);
+}
+function quandoSalvato(ts){
+  if(!ts) return "mai";
+  var d=new Date(ts), iso=d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate());
+  var ora=p2(d.getHours())+":"+p2(d.getMinutes());
+  if(iso===oggiISO()) return "oggi alle "+ora;
+  var ieri=new Date(); ieri.setDate(ieri.getDate()-1);
+  if(iso===ieri.getFullYear()+"-"+p2(ieri.getMonth()+1)+"-"+p2(ieri.getDate())) return "ieri alle "+ora;
+  return dataEstesa(iso)+" alle "+ora;
+}
+
+
 function scarica(){
   try{
     var b=new Blob([JSON.stringify(raccogli(),null,1)],{type:"application/json"});
@@ -783,7 +1002,7 @@ function ripristina(){
     if(d.indice) scrivi(K_IDX,d.indice);
     /* un backup senza schedaV è di prima del riordino: al prossimo avvio le sue
        sedute vanno rinumerate, quindi si riparte da 1 */
-    scrivi(K_CFG,{pesiPrec:d.pesiPrec||S.pesiPrec,riposo:d.riposo||S.riposo,schermo:S.schermo,ultimo:S.ultimo,schedaV:d.schedaV||1});
+    scrivi(K_CFG,{pesiPrec:d.pesiPrec||S.pesiPrec,riposo:d.riposo||S.riposo,schermo:S.schermo,ultimo:S.ultimo,schedaV:d.schedaV||1,drive:S.drive});
     S.msg="Ripristinato. Ricarico…"; render();
     setTimeout(function(){location.reload();},900);
   }catch(e){ S.msg="Quel testo non è un backup valido."; render(); }
@@ -791,6 +1010,10 @@ function ripristina(){
 
 avvia();
 if(S.schermo) schermoAcceso(true);
+/* La copia all'apertura parte staccata dall'avvio e in ritardo: se Google non
+   risponde, o se in palestra non c'è campo, l'app è già in piedi e non se ne
+   accorge nessuno. */
+if(S.drive.on) setTimeout(function(){ driveSalva(false); },2000);
 if("serviceWorker" in navigator){
   window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
 }

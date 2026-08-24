@@ -56,6 +56,11 @@ Se Manlio dice che la scheda è cambiata, modifica `SCHEDA` e ricontrolla i tota
 2. **Nessun build, nessun framework, nessun npm.** JavaScript semplice.
 3. **Nessuna dipendenza esterna a runtime.** Deve funzionare senza rete: in palestra
    il segnale è pessimo. Caratteri di sistema, niente CDN.
+   **Unica eccezione, dal 2026-08-24:** la libreria di Google per il permesso di Drive.
+   Si carica **solo** quando lui tocca "Collega Google Drive" o quando la copia
+   automatica parte ad app già avviata — **mai all'avvio**. Senza rete fallisce in
+   silenzio e la Palestra funziona come sempre. Provato: ad app aperta e non
+   collegata, le chiamate di rete sono zero.
 4. **Mobile prima di tutto.** Si usa con le mani sudate, in piedi, fra una serie e
    l'altra: bersagli grandi, niente gesti fini, niente menu annidati.
 
@@ -63,7 +68,10 @@ Se Manlio dice che la scheda è cambiata, modifica `SCHEDA` e ricontrolla i tota
 
 `localStorage`, con questi prefissi:
 
-- `palestra.config` → `{pesiPrec:{...}, riposo, schermo, ultimo, schedaV}`
+- `palestra.config` → `{pesiPrec:{...}, riposo, schermo, ultimo, schedaV, drive}`
+  `drive` è `{on, id, ultimo, rev}`: collegato o no, il file su Drive, quando è partita
+  l'ultima copia e il segnaposto per capire se qualcun altro l'ha toccata. **Il permesso
+  di Google non si salva mai**: vive in memoria (`GTOK`), dura un'ora, si richiede.
   `pesiPrec` è il carico per esercizio, aggiornato **mentre si scrive**: serve poco e
   non va usato come "ultima volta", perché dopo due tasti non ricorda più da dove eri
   partito. Il riferimento vero è `S.pesiRif`, ricalcolato da `calcolaRiferimenti()`
@@ -138,6 +146,41 @@ Non usare mai chiavi senza prefisso `palestra.`.
 - Cambiare giorno con serie già spuntate era impedito di proposito, quando i giorni erano
   due. Ora il programma è unico e la scelta non esiste più.
 
+## La copia su Google Drive
+
+Aggiunta il 2026-08-24, uguale a quella del Diario e per la stessa ragione: i carichi
+esistono solo dentro questo telefono, e sono **la cosa meno ricostruibile** che ha —
+senza, in palestra non sa da dove ripartire.
+
+Quando apre l'app, e un minuto dopo ogni spunta, il backup completo finisce nel suo
+Drive come `palestra-backup.json`. Da un altro dispositivo: "Riprendi le sedute da
+Drive", che passa dalla stessa strada del ripristino da file — **la migrazione
+`schedaV` resta quella, non inventarne un'altra**: un backup senza `schedaV` viene
+rinumerato al riavvio come è sempre stato.
+
+**Due regole da non togliere mai.**
+La prima: **se qui non c'è nessuna seduta, non si scrive su Drive.** Il caso da temere
+è telefono nuovo più "Collega" premuto per primo: il vuoto di qui cancellerebbe la
+copia buona di là e non resterebbe niente da cui riprendere. In quel caso ci si collega
+e gli si dice di premere "Riprendi".
+La seconda: **non si sovrascrive una copia toccata da qualcun altro.** Prima di
+scrivere si chiede a Drive quando è stato modificato il file e lo si confronta con
+`S.drive.rev`. Se non combaciano, di là c'è roba più nuova e ci si ferma. La via
+d'uscita è "scollega e ricollega", che azzera il segnaposto.
+
+**Stesso identificativo Google del Diario**, di proposito: l'indirizzo autorizzato è
+`https://manliograndi-del.github.io`, che copre tutte e due le app, così non è servito
+rimettere mano al pannello di Google. Per Drive le due app sono lo stesso programma:
+si tengono separate **solo dal nome del file** (`palestra-backup.json` contro
+`diario-backup.json`). Se ne aggiungi una terza, dalle un nome diverso.
+Il permesso è `drive.file`: si tocca solo il file creato dall'app. Non allargarlo.
+L'identificativo in chiaro dentro `index.html` **non è una chiave segreta**: negli
+schemi da browser è pubblico e vale solo se chiamato dall'indirizzo autorizzato.
+
+In `sw.js` c'è una riga che fa **ignorare al service worker tutto ciò che non è del
+nostro indirizzo**: senza, una chiamata a Google andata storta si prenderebbe in cambio
+la pagina dell'app.
+
 ## Aspetto
 
 **Rifatto il 2026-08-18 sul linguaggio visivo di Virgin Active**, su richiesta di
@@ -168,7 +211,7 @@ ripetizioni dentro. Il timer sale dal basso come riquadro staccato.
 
 ## Prima di chiudere una sessione
 
-1. **Alza il numero di versione della cache in `sw.js`** (`palestra-v2` → `palestra-v3`).
+1. **Alza il numero di versione della cache in `sw.js`** (`palestra-v7` → `palestra-v8`).
    Dal 2026-08-18 il service worker chiede la pagina prima alla rete, quindi una versione
    nuova arriva con un ricaricamento solo; il numero di cache va alzato lo stesso, governa
    la copia di riserva usata offline. La pulizia in `activate` tocca solo i nomi che

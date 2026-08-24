@@ -5,7 +5,7 @@
    vive anche l'app Diario e le due si cancellerebbero la cache a vicenda.
    Alza il numero di versione a ogni rilascio. */
 const PREFISSO = "palestra-";
-const CACHE = PREFISSO + "v6";
+const CACHE = PREFISSO + "v7";
 const FILE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -35,6 +35,12 @@ function conserva(richiesta, risposta) {
 
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+
+  /* Quello che non è di casa nostra non ci riguarda: da quando la Palestra
+     parla con Google Drive, senza questa riga una chiamata a Google andata
+     storta si sarebbe presa in cambio la pagina dell'app, e chi l'ha chiamata
+     avrebbe letto HTML al posto della risposta. */
+  if (new URL(e.request.url).origin !== self.location.origin) return;
 
   /* La pagina viene chiesta prima alla rete: è tutta l'app, e servirla dalla
      cache significava mostrare per giorni una versione vecchia, costringendo
