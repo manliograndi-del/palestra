@@ -252,7 +252,8 @@ var S={
   indice:{}, riposo:60, schermo:true, ultimo:null, schedaV:SCHEDA_V, mese:null, carico:null,
   pesiRif:{},         // i carichi della seduta precedente: proposta e termine di paragone
   msg:null, spia:"", focus:null, aperto:null, apertoS:null, export:"", importa:"",
-  drive:{on:false,id:null,ultimo:null,rev:null}, driveStato:""
+  drive:{on:false,id:null,ultimo:null,rev:null}, driveStato:"",
+  orologio:null       // la seduta arrivata dal polso, in attesa di conferma
 };
 
 /* ---------- avvio ---------- */
@@ -271,6 +272,7 @@ function avvia(){
   if(s){ S.fatte=s.fatte||{}; S.pesi=s.pesi||{}; S.cardio=s.cardio||{}; }
   calcolaRiferimenti();
   if(!memOk) S.msg="Questo browser non permette il salvataggio. Esci dalla navigazione privata.";
+  S.orologio=leggiOrologio();
   render();
 }
 /* I carichi dell'ultima seduta davvero fatta. Non uso `pesiPrec` perché quello
@@ -441,6 +443,102 @@ function alRisveglio(){
 }
 document.addEventListener("visibilitychange",alRisveglio);
 window.addEventListener("pageshow",alRisveglio);
+/* Se l'app è già aperta, il telefono non la ricarica: cambia solo l'indirizzo.
+   Senza questo, la seduta mandata dall'orologio non comparirebbe mai. */
+window.addEventListener("hashchange",function(){
+  var o=leggiOrologio();
+  if(o){ S.orologio=o; S.vista="allenamento"; render(); }
+});
+
+/* ---------- la seduta che arriva dall'orologio ----------
+   L'app da polso non parla con questa pagina: **apre un indirizzo sul telefono**
+   con la seduta scritta dentro. È l'unico modo che non richiede una seconda app
+   installata sul telefono, ed è per questo che il collegamento va in un senso
+   solo: l'orologio racconta, il telefono decide.
+
+   Forma del messaggio, dopo il cancelletto:
+     orologio=1;2026-08-24;3-0,3-1,4-0;0,11
+     versione ; data ; serie spuntate ; blocchi di cardio fatti
+   Le serie usano le stesse chiavi di qui ("indice esercizio - numero serie"),
+   quindi l'app da polso deve avere **la stessa scheda nello stesso ordine**.
+   Se un giorno riordini SCHEDA, va rifatta anche di là: la versione in testa
+   serve a accorgersene invece di registrare spunte a caso. */
+var OROLOGIO_V=1;
+function leggiOrologio(){
+  var h=String(location.hash||"");
+  var i=h.indexOf("orologio=");
+  if(i<0) return null;
+  var pezzi=h.slice(i+9).split(";");
+  if(Number(pezzi[0])!==OROLOGIO_V) return {errore:"versione"};
+  var data=pezzi[1]||"";
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(data)) return {errore:"formato"};
+  var es=SCHEDA[1].es;
+  var fatte={}, nf=0, cardio={}, nc=0, fuori=false;
+  (pezzi[2]||"").split(",").forEach(function(k){
+    if(!k) return;
+    var a=k.split("-"), i2=Number(a[0]), j=Number(a[1]);
+    var e=es[i2];
+    if(!e||e.t!=="serie"||!(j>=0&&j<e.set)){ fuori=true; return; }
+    if(!fatte[i2+"-"+j]){ fatte[i2+"-"+j]=true; nf++; }
+  });
+  (pezzi[3]||"").split(",").forEach(function(k){
+    if(!k) return;
+    var i2=Number(k), e=es[i2];
+    if(!e||e.t!=="cardio"){ fuori=true; return; }
+    if(!cardio[i2]){ cardio[i2]=true; nc++; }
+  });
+  if(fuori) return {errore:"scheda"};
+  return {data:data, fatte:fatte, serie:nf, cardio:cardio, nCardio:nc};
+}
+/* L'indirizzo va ripulito subito: se resta lì, un ricaricamento rimetterebbe
+   in mezzo la stessa proposta a distanza di giorni. */
+function pulisciOrologio(){
+  try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){ location.hash=""; }
+}
+function orologioRegistra(){
+  var o=S.orologio; if(!o||o.errore) return;
+  /* La seduta del polso prende il posto di quella del telefono, come deciso:
+     due elenchi mezzi pieni non si fondono da soli senza inventare. I chili
+     restano quelli di qui, che sull'orologio non si possono scrivere. */
+  S.data=o.data;
+  var vecchia=leggi(K_S+o.data,null);
+  S.pesi=(vecchia&&vecchia.pesi)||S.pesi||{};
+  S.fatte=o.fatte; S.cardio=o.cardio;
+  /* Sull'orologio i chili si vedono e basta, quindi qui non li scrive nessuno:
+     senza questo pezzo una seduta fatta dal polso peserebbe zero e la pagina
+     Carichi resterebbe vuota per quel giorno. Vale la stessa regola del tocco
+     sul telefono — spuntare una serie fa diventare "di oggi" il carico
+     proposto, che è esattamente il numero che l'orologio gli ha mostrato. */
+  var esl=SCHEDA[1].es;
+  Object.keys(o.fatte).forEach(function(k){
+    var e=esl[Number(k.split("-")[0])];
+    if(!e||e.t!=="serie") return;
+    if(S.pesi[e.n]===undefined&&S.pesiRif[e.n]!==undefined&&S.pesiRif[e.n]!=="")
+      S.pesi[e.n]=S.pesiRif[e.n];
+  });
+  S.orologio=null; pulisciOrologio();
+  salva();
+  S.msg="Seduta dell'orologio registrata: "+o.serie+" serie.";
+  S.vista="allenamento"; render();
+}
+function orologioAnnulla(){ S.orologio=null; pulisciOrologio(); render(); }
+function avvisoOrologio(){
+  var o=S.orologio; if(!o) return "";
+  if(o.errore) return '<section class="pannello"><div class="etichetta">Arrivata dall\'orologio</div>'+
+    '<div class="nota male">'+(o.errore==="versione"
+      ? "L'app dell'orologio è di una versione diversa da questa. Aggiornala, oppure spunta la seduta da qui."
+      : "Il messaggio dell'orologio non si legge. Spunta la seduta da qui.")+'</div>'+
+    '<button class="b2" data-az="oro-no">Chiudi</button></section>';
+  var gia=fatteN()+Object.keys(S.cardio).length;
+  return '<section class="pannello"><div class="etichetta">Arrivata dall\'orologio</div>'+
+    '<div class="riep-n" style="margin-top:10px">'+o.serie+' serie</div>'+
+    '<div class="nota">'+dataEstesa(o.data)+(o.nCardio?" · "+o.nCardio+(o.nCardio===1?" blocco di cardio":" blocchi di cardio"):"")+
+    '. I chili restano quelli segnati qui.'+
+    (gia?' <strong>Attenzione: su questo telefono ci sono già '+gia+' spunte per quel giorno, e verranno sostituite.</strong>':'')+
+    '</div>'+
+    '<button class="b1" data-az="oro-si">Registra</button>'+
+    '<button class="b2" data-az="oro-no">Annulla</button></section>';
+}
 
 /* ---------- render ---------- */
 function render(){
@@ -451,6 +549,7 @@ function render(){
      '<div class="sotto">'+dataEstesa(S.data)+'</div></div><div class="spia">'+S.spia+'</div></div></header>';
   if(S.msg) h+='<div class="avviso" data-az="chiudi-msg">'+esc(S.msg)+' <span class="avviso-x">chiudi</span></div>';
   h+='<main class="corpo">';
+  if(S.orologio) h+=avvisoOrologio();
   if(S.vista==="allenamento") h+=vAllenamento();
   else if(S.vista==="storico") h+=vStorico();
   else if(S.vista==="carichi") h+=vCarichi();
@@ -768,6 +867,8 @@ document.body.addEventListener("click",function(ev){
   else if(az==="esporta"){ S.export=JSON.stringify(raccogli()); render(); }
   else if(az==="scarica"){ scarica(); }
   else if(az==="drive-collega"||az==="drive-salva"){ driveSalva(true); }
+  else if(az==="oro-si"){ orologioRegistra(); }
+  else if(az==="oro-no"){ orologioAnnulla(); }
   else if(az==="drive-riprendi"){ driveRiprendi(); }
   else if(az==="drive-scollega"){ driveScollega(); }
   else if(az==="importa"){ ripristina(); }

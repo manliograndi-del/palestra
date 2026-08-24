@@ -181,6 +181,40 @@ In `sw.js` c'è una riga che fa **ignorare al service worker tutto ciò che non 
 nostro indirizzo**: senza, una chiamata a Google andata storta si prenderebbe in cambio
 la pagina dell'app.
 
+## La seduta che arriva dall'orologio
+
+Prevista per l'app da polso (Wear OS), disegnata insieme a lui il 2026-08-24 e
+approvata schermata per schermata. **Questa metà — quella del telefono — è già
+scritta e provata; l'app dell'orologio no.** Finché non esiste, questo pezzo dorme:
+senza messaggio non compare niente.
+
+L'orologio **non parla con questa pagina**: apre un indirizzo sul telefono con la
+seduta scritta dentro (`RemoteActivityHelper` di Wear OS, che apre una URL sul
+telefono **senza bisogno di nessuna app installata sul telefono**). È il motivo per
+cui il collegamento va in un senso solo: l'orologio racconta, il telefono decide.
+
+    #orologio=1;2026-08-24;3-0,3-1,4-0;0,11
+    versione ; data ; serie spuntate ; blocchi di cardio
+
+Le serie usano **le stesse chiavi di qui** (`indice esercizio - numero serie`),
+quindi l'app da polso deve avere **la stessa scheda nello stesso ordine**. Se
+riordini `SCHEDA`, va rifatta anche di là: la versione in testa (`OROLOGIO_V`) serve
+ad accorgersene invece di registrare spunte a caso.
+
+Regole decise con lui:
+- la seduta del polso **sostituisce** quella del telefono, con un riquadro di
+  conferma che dice quante spunte verrebbero perse. Due elenchi mezzi pieni non si
+  fondono da soli senza inventare;
+- **i chili non si scrivono sull'orologio**, si vedono soltanto. Al momento di
+  registrare, ogni esercizio spuntato prende il carico di riferimento (`pesiRif`) —
+  la stessa regola del tocco sul telefono, e lo stesso numero che l'orologio gli ha
+  mostrato. Senza quel pezzo una seduta fatta dal polso peserebbe **zero chili** e la
+  pagina Carichi resterebbe vuota per quel giorno: trovato provando;
+- l'indirizzo si ripulisce subito dopo (`pulisciOrologio`), altrimenti un
+  ricaricamento rimetterebbe in mezzo la stessa proposta a giorni di distanza;
+- c'è un ascolto su `hashchange`: se l'app è già aperta il telefono non la ricarica,
+  cambia solo l'indirizzo, e senza quello il messaggio non comparirebbe mai.
+
 ## Aspetto
 
 **Rifatto il 2026-08-18 sul linguaggio visivo di Virgin Active**, su richiesta di
@@ -211,7 +245,7 @@ ripetizioni dentro. Il timer sale dal basso come riquadro staccato.
 
 ## Prima di chiudere una sessione
 
-1. **Alza il numero di versione della cache in `sw.js`** (`palestra-v7` → `palestra-v8`).
+1. **Alza il numero di versione della cache in `sw.js`** (`palestra-v8` → `palestra-v9`).
    Dal 2026-08-18 il service worker chiede la pagina prima alla rete, quindi una versione
    nuova arriva con un ricaricamento solo; il numero di cache va alzato lo stesso, governa
    la copia di riserva usata offline. La pulizia in `activate` tocca solo i nomi che
