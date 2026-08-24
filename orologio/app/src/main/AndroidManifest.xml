@@ -13,7 +13,7 @@
         android:icon="@drawable/ic_launcher"
         android:label="Palestra"
         android:supportsRtl="false"
-        android:theme="@android:style/Theme.DeviceDefault.NoTitleBar">
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
 
         <uses-library android:name="com.google.android.wearable" android:required="false" />
         <!-- l'app da polso funziona da sola, non ha bisogno di un'app sul telefono -->
