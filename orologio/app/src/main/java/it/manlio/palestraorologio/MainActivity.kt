@@ -109,6 +109,7 @@ class MainActivity : Activity() {
         gesti = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent): Boolean = true
             override fun onSingleTapUp(e: MotionEvent): Boolean { tocco(); return true }
+            override fun onLongPress(e: MotionEvent) { annullaUltimo() }
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, vx: Float, vy: Float): Boolean {
                 if (e1 == null) return false
                 val dx = e2.x - e1.x
@@ -184,6 +185,17 @@ class MainActivity : Activity() {
 
     /* ---------- il tocco ---------- */
 
+    /* Il tocco **va sempre avanti**: spunta, e quando non c'è più niente da
+       spuntare passa all'esercizio dopo. La prima versione accendeva e spegneva
+       "fatto" a ogni tocco, e Manlio ha visto l'app rimbalzare fra due
+       schermate: un tocco che a volte disfa quello che hai appena fatto non è
+       un tocco, è una trappola. Per correggere si **tiene premuto**. */
+    private fun avanza() {
+        pagina = minOf(pagina + 1, ultima)
+        avviso = null
+        mostra()
+    }
+
     private fun tocco() {
         if (avviso == "vecchia") return          // lì decidono i due tasti
         if (timer != null) { fermaTimer(); mostra(); return }
@@ -193,18 +205,32 @@ class MainActivity : Activity() {
         val i = pagina
         val e = SCHEDA[i]
         if (e.cardio) {
-            if (cardio.contains(i)) cardio.remove(i) else cardio.add(i)
-            salva(); mostra(); return
+            if (!cardio.contains(i)) { cardio.add(i); mandata = false; salva(); vibraBreve() }
+            avanza()
+            return
         }
         val n = fatteEs(i)
-        if (n >= e.serie) {                       // esercizio finito: si toglie l'ultima
-            fatte.remove("$i-${e.serie - 1}")
-            salva(); mostra(); return
-        }
+        if (n >= e.serie) { avanza(); return }    // esercizio finito: si va avanti
         fatte.add("$i-$n")
         mandata = false
         salva()
         avviaTimer()
+    }
+
+    /* Tenere premuto toglie l'ultima cosa segnata su questa schermata. */
+    private fun annullaUltimo() {
+        if (pagina == ultima) return
+        val i = pagina
+        val e = SCHEDA[i]
+        var tolto = false
+        if (e.cardio) { tolto = cardio.remove(i) }
+        else {
+            val n = fatteEs(i)
+            if (n > 0) { fatte.remove("$i-${n - 1}"); tolto = true }
+        }
+        if (tolto) { salva(); vibraBreve() }
+        fermaTimer()
+        mostra()
     }
 
     /* ---------- recupero ---------- */
@@ -231,7 +257,11 @@ class MainActivity : Activity() {
         timer = null
     }
 
-    private fun vibra() {
+    private fun vibraBreve() { vibraCon(longArrayOf(0, 35)) }
+
+    private fun vibra() { vibraCon(longArrayOf(0, 220, 140, 220, 140, 380)) }
+
+    private fun vibraCon(tempi: LongArray) {
         try {
             val v: Vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vm = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -240,7 +270,6 @@ class MainActivity : Activity() {
                 @Suppress("DEPRECATION")
                 getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             }
-            val tempi = longArrayOf(0, 220, 140, 220, 140, 380)
             v.vibrate(VibrationEffect.createWaveform(tempi, -1))
         } catch (e: Exception) { /* senza vibrazione si vive */ }
     }
@@ -415,10 +444,15 @@ class MainActivity : Activity() {
             val fatto = cardio.contains(i)
             c.addView(testo(if (fatto) "FATTO" else "tocca quando l'hai fatto",
                 14f, if (fatto) ROSSO else TENUE, fatto, 12))
+            if (fatto) c.addView(testo("tieni premuto per togliere", 10f, TENUE, false, 6))
         } else {
             c.addView(testo("${e.serie} × ${e.rip}", 16f, ROSSO, true, 4))
             c.addView(pastiglie(i))
-            c.addView(testo("${fatteEs(i)} su ${e.serie}", 12f, TENUE, false, 10))
+            val n = fatteEs(i)
+            c.addView(testo(
+                if (n >= e.serie) "finito — tocca per andare avanti" else "$n su ${e.serie}",
+                12f, TENUE, false, 10))
+            if (n > 0) c.addView(testo("tieni premuto per togliere", 10f, TENUE, false, 4))
         }
         radice.addView(c)
     }
