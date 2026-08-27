@@ -54,7 +54,7 @@ import java.util.concurrent.Executors
  * OROLOGIO_V da tutte e due le parti.
  */
 
-private const val OROLOGIO_V = 1
+private const val OROLOGIO_V = 2
 private const val INDIRIZZO = "https://manliograndi-del.github.io/palestra/"
 private const val RECUPERO_SEC = 60L
 
@@ -89,6 +89,13 @@ class MainActivity : Activity() {
 
     private val fatte = HashSet<String>()
     private val cardio = HashSet<Int>()
+    /* I chili vivono anche qui, regolati con − e + (tenendo premuto ±10):
+       senza, in palestra non sapresti quanto mettere sulla macchina, e l'app
+       da polso sarebbe inutile. Viaggiano dentro il messaggio, così il
+       telefono registra questi e non i suoi. Il reset non li tocca: sono la
+       regolazione delle macchine, non la seduta. */
+    private val kg = HashMap<Int, Float>()
+    private var confermaAzzera = false
     private var data = ""
     private var mandata = false
     private var pagina = 0
@@ -118,6 +125,7 @@ class MainActivity : Activity() {
                 fermaTimer()
                 pagina = if (dx < 0) minOf(pagina + 1, ultima) else maxOf(pagina - 1, 0)
                 avviso = null
+                confermaAzzera = false
                 mostra()
                 return true
             }
@@ -139,6 +147,11 @@ class MainActivity : Activity() {
         cardio.clear()
         (pref.getStringSet("cardio", emptySet()) ?: emptySet()).forEach { cardio.add(it.toInt()) }
         mandata = pref.getBoolean("mandata", false)
+        kg.clear()
+        for (i in SCHEDA.indices) {
+            val v = pref.getFloat("kg_$i", 0f)
+            if (v > 0f) kg[i] = v
+        }
 
         if (data.isEmpty()) { data = oggi(); return }
         if (data == oggi()) return
@@ -156,12 +169,13 @@ class MainActivity : Activity() {
     }
 
     private fun salva() {
-        pref.edit()
+        val ed = pref.edit()
             .putString("data", data)
             .putStringSet("fatte", HashSet(fatte))
             .putStringSet("cardio", HashSet(cardio.map { it.toString() }))
             .putBoolean("mandata", mandata)
-            .apply()
+        for (i in SCHEDA.indices) ed.putFloat("kg_$i", kg[i] ?: 0f)
+        ed.apply()
     }
 
     private fun fatteEs(i: Int): Int {
@@ -193,6 +207,7 @@ class MainActivity : Activity() {
     private fun avanza() {
         pagina = minOf(pagina + 1, ultima)
         avviso = null
+        confermaAzzera = false
         mostra()
     }
 
@@ -200,7 +215,7 @@ class MainActivity : Activity() {
         if (avviso == "vecchia") return          // lì decidono i due tasti
         if (timer != null) { fermaTimer(); mostra(); return }
 
-        if (pagina == ultima) { manda(); return }
+        if (pagina == ultima) return   // qui decidono i tasti, un tocco a vuoto non manda niente
 
         val i = pagina
         val e = SCHEDA[i]
@@ -279,10 +294,15 @@ class MainActivity : Activity() {
     private fun indirizzoSeduta(): String {
         val s = fatte.joinToString(",")
         val c = cardio.sorted().joinToString(",")
-        return INDIRIZZO + "#orologio=" + OROLOGIO_V + ";" + data + ";" + s + ";" + c
+        val p = kg.entries.sortedBy { it.key }.joinToString(",") {
+            "${it.key}:" + (if (it.value % 1f == 0f) it.value.toInt().toString()
+                            else String.format(Locale.US, "%.1f", it.value))
+        }
+        return INDIRIZZO + "#orologio=" + OROLOGIO_V + ";" + data + ";" + s + ";" + c + ";" + p
     }
 
     private fun manda() {
+        confermaAzzera = false
         if (fatte.isEmpty() && cardio.isEmpty()) { avviso = "niente"; mostra(); return }
         val intento = Intent(Intent.ACTION_VIEW)
             .addCategory(Intent.CATEGORY_BROWSABLE)
@@ -329,6 +349,38 @@ class MainActivity : Activity() {
         lp.topMargin = dp(sopra.toFloat())
         tv.layoutParams = lp
         return tv
+    }
+
+    private fun etichettaKg(i: Int): String {
+        val v = kg[i] ?: return "— kg"
+        val t = if (v % 1f == 0f) v.toInt().toString() else String.format(Locale.ITALY, "%.1f", v)
+        return "$t kg"
+    }
+
+    private fun cambiaKg(i: Int, delta: Float) {
+        val nuovo = ((kg[i] ?: 0f) + delta).coerceIn(0f, 300f)
+        if (nuovo <= 0f) kg.remove(i) else kg[i] = nuovo
+        salva(); vibraBreve(); mostra()
+    }
+
+    private fun rigaKg(i: Int): View {
+        val riga = LinearLayout(this)
+        riga.orientation = LinearLayout.HORIZONTAL
+        riga.gravity = Gravity.CENTER
+        val lp = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        lp.topMargin = dp(8f)
+        riga.layoutParams = lp
+        val meno = tasto("−", false)
+        meno.setOnClickListener { cambiaKg(i, -2.5f) }
+        meno.setOnLongClickListener { cambiaKg(i, -10f); true }
+        val valore = testo(etichettaKg(i), 17f, Color.WHITE, true)
+        valore.layoutParams = LinearLayout.LayoutParams(dp(86f), ViewGroup.LayoutParams.WRAP_CONTENT)
+        val piu = tasto("+", false)
+        piu.setOnClickListener { cambiaKg(i, +2.5f) }
+        piu.setOnLongClickListener { cambiaKg(i, +10f); true }
+        riga.addView(meno); riga.addView(valore); riga.addView(piu)
+        return riga
     }
 
     private fun pastiglie(i: Int): View {
@@ -425,6 +477,17 @@ class MainActivity : Activity() {
             lp.gravity = Gravity.CENTER
             t.layoutParams = lp
             c.addView(t)
+            val az = tasto(if (confermaAzzera) "Sicuro? Tocca: azzera" else "Azzera la seduta", false)
+            az.setOnClickListener {
+                if (confermaAzzera) { confermaAzzera = false; nuovoGiorno(); vibraBreve(); mostra() }
+                else { confermaAzzera = true; mostra() }
+            }
+            val alp = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            alp.topMargin = dp(10f)
+            alp.gravity = Gravity.CENTER_HORIZONTAL
+            az.layoutParams = alp
+            c.addView(az)
             if (avviso != null) c.addView(testo(when (avviso) {
                 "invio" -> "sto mandando…"
                 "mandata" -> "arrivata al telefono"
@@ -447,6 +510,7 @@ class MainActivity : Activity() {
             if (fatto) c.addView(testo("tieni premuto per togliere", 10f, TENUE, false, 6))
         } else {
             c.addView(testo("${e.serie} × ${e.rip}", 16f, ROSSO, true, 4))
+            c.addView(rigaKg(i))
             c.addView(pastiglie(i))
             val n = fatteEs(i)
             c.addView(testo(

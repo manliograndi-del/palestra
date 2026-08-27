@@ -457,19 +457,22 @@ window.addEventListener("hashchange",function(){
    solo: l'orologio racconta, il telefono decide.
 
    Forma del messaggio, dopo il cancelletto:
-     orologio=1;2026-08-24;3-0,3-1,4-0;0,11
-     versione ; data ; serie spuntate ; blocchi di cardio fatti
+     orologio=2;2026-08-24;3-0,3-1,4-0;0,11;3:60,4:32.5
+     versione ; data ; serie spuntate ; cardio fatti ; chili per esercizio
+   La versione 1 non aveva i chili e si accetta ancora: dalla 2 l'orologio li
+   manda lui, regolati con − e + sul polso, e sono quelli che contano.
    Le serie usano le stesse chiavi di qui ("indice esercizio - numero serie"),
    quindi l'app da polso deve avere **la stessa scheda nello stesso ordine**.
    Se un giorno riordini SCHEDA, va rifatta anche di là: la versione in testa
    serve a accorgersene invece di registrare spunte a caso. */
-var OROLOGIO_V=1;
+var OROLOGIO_V=2;
 function leggiOrologio(){
   var h=String(location.hash||"");
   var i=h.indexOf("orologio=");
   if(i<0) return null;
   var pezzi=h.slice(i+9).split(";");
-  if(Number(pezzi[0])!==OROLOGIO_V) return {errore:"versione"};
+  var ver=Number(pezzi[0]);
+  if(!(ver>=1&&ver<=OROLOGIO_V)) return {errore:"versione"};
   var data=pezzi[1]||"";
   if(!/^\d{4}-\d{2}-\d{2}$/.test(data)) return {errore:"formato"};
   var es=SCHEDA[1].es;
@@ -487,8 +490,16 @@ function leggiOrologio(){
     if(!e||e.t!=="cardio"){ fuori=true; return; }
     if(!cardio[i2]){ cardio[i2]=true; nc++; }
   });
+  var pesi={};
+  (pezzi[4]||"").split(",").forEach(function(k){
+    if(!k) return;
+    var a=k.split(":"), i2=Number(a[0]), kgv=Number(a[1]);
+    var e=es[i2];
+    if(!e||e.t!=="serie"||!isFinite(kgv)||kgv<0){ fuori=true; return; }
+    if(kgv>0) pesi[i2]=kgv;
+  });
   if(fuori) return {errore:"scheda"};
-  return {data:data, fatte:fatte, serie:nf, cardio:cardio, nCardio:nc};
+  return {data:data, fatte:fatte, serie:nf, cardio:cardio, nCardio:nc, pesi:pesi};
 }
 /* L'indirizzo va ripulito subito: se resta lì, un ricaricamento rimetterebbe
    in mezzo la stessa proposta a distanza di giorni. */
@@ -510,6 +521,16 @@ function orologioRegistra(){
      sul telefono — spuntare una serie fa diventare "di oggi" il carico
      proposto, che è esattamente il numero che l'orologio gli ha mostrato. */
   var esl=SCHEDA[1].es;
+  /* Dalla versione 2 i chili arrivano dall'orologio, dove lui li regola con
+     − e +: per gli esercizi spuntati vincono su tutto. Dove mancano, resta la
+     vecchia regola: il carico di riferimento dell'ultima volta. */
+  var conFatte={};
+  Object.keys(o.fatte).forEach(function(k){ conFatte[Number(k.split("-")[0])]=true; });
+  Object.keys(o.pesi||{}).forEach(function(i2){
+    if(!conFatte[i2]) return;
+    var e=esl[Number(i2)];
+    if(e) S.pesi[e.n]=o.pesi[i2];
+  });
   Object.keys(o.fatte).forEach(function(k){
     var e=esl[Number(k.split("-")[0])];
     if(!e||e.t!=="serie") return;
@@ -533,7 +554,7 @@ function avvisoOrologio(){
   return '<section class="pannello"><div class="etichetta">Arrivata dall\'orologio</div>'+
     '<div class="riep-n" style="margin-top:10px">'+o.serie+' serie</div>'+
     '<div class="nota">'+dataEstesa(o.data)+(o.nCardio?" · "+o.nCardio+(o.nCardio===1?" blocco di cardio":" blocchi di cardio"):"")+
-    '. I chili restano quelli segnati qui.'+
+    '. '+((o.pesi&&Object.keys(o.pesi).length)?'I chili sono quelli regolati sull\'orologio.':'I chili restano quelli segnati qui.')+
     (gia?' <strong>Attenzione: su questo telefono ci sono già '+gia+' spunte per quel giorno, e verranno sostituite.</strong>':'')+
     '</div>'+
     '<button class="b1" data-az="oro-si">Registra</button>'+

@@ -193,8 +193,10 @@ seduta scritta dentro (`RemoteActivityHelper` di Wear OS, che apre una URL sul
 telefono **senza bisogno di nessuna app installata sul telefono**). È il motivo per
 cui il collegamento va in un senso solo: l'orologio racconta, il telefono decide.
 
-    #orologio=1;2026-08-24;3-0,3-1,4-0;0,11
-    versione ; data ; serie spuntate ; blocchi di cardio
+    #orologio=2;2026-08-24;3-0,3-1,4-0;0,11;3:60,4:32.5
+    versione ; data ; serie ; cardio ; chili per esercizio
+La versione 1 (senza chili) si accetta ancora; la 2 è quella dell'app da polso
+dal 2026-08-26.
 
 Le serie usano **le stesse chiavi di qui** (`indice esercizio - numero serie`),
 quindi l'app da polso deve avere **la stessa scheda nello stesso ordine**. Se
@@ -205,11 +207,14 @@ Regole decise con lui:
 - la seduta del polso **sostituisce** quella del telefono, con un riquadro di
   conferma che dice quante spunte verrebbero perse. Due elenchi mezzi pieni non si
   fondono da soli senza inventare;
-- **i chili non si scrivono sull'orologio**, si vedono soltanto. Al momento di
-  registrare, ogni esercizio spuntato prende il carico di riferimento (`pesiRif`) —
-  la stessa regola del tocco sul telefono, e lo stesso numero che l'orologio gli ha
-  mostrato. Senza quel pezzo una seduta fatta dal polso peserebbe **zero chili** e la
-  pagina Carichi resterebbe vuota per quel giorno: trovato provando;
+- **i chili si regolano sull'orologio con − e +** (deciso il 2026-08-26, ribaltando
+  la scelta del giorno prima: provandola, Manlio ha detto subito che senza chili
+  l'app da polso non serve — in palestra devi sapere quanto mettere sulla macchina).
+  Vivono nelle SharedPreferences del polso, il reset della seduta **non li tocca**
+  (sono la regolazione delle macchine, non la seduta) e viaggiano nel messaggio:
+  per gli esercizi spuntati vincono su tutto. Dove mancano resta la vecchia regola,
+  il carico di riferimento (`pesiRif`) — senza quel fallback una seduta dal polso
+  peserebbe zero e i Carichi resterebbero vuoti: trovato provando;
 - l'indirizzo si ripulisce subito dopo (`pulisciOrologio`), altrimenti un
   ricaricamento rimetterebbe in mezzo la stessa proposta a giorni di distanza;
 - c'è un ascolto su `hashchange`: se l'app è già aperta il telefono non la ricarica,
@@ -229,9 +234,13 @@ Palestra sul telefono.
 - **Lo stesso APK si installa anche sul telefono** (`uses-feature ... required="false"`).
   Sul telefono non c'è nessun polso a cui mandare la seduta, quindi apre la Palestra
   direttamente: è così che si prova tutta la catena senza orologio e senza cavi.
-- I chili sull'orologio **non ci sono proprio**: non esiste un canale telefono→polso
-  senza un'app installata sul telefono, e non ne vogliamo una. Li mette il telefono
-  quando registra, prendendo quelli di riferimento.
+- I chili sull'orologio **si tengono a mano**: non esiste un canale telefono→polso
+  senza un'app installata sul telefono, quindi il polso ha la sua copia, regolata
+  con − e + (tenendo premuto ±10, passi da 2,5). La prima volta vanno impostati
+  esercizio per esercizio; poi restano e si ritoccano quando cambiano.
+- Sulla schermata finale c'è **"Azzera la seduta"** con doppia conferma (chiesto il
+  2026-08-26): azzera spunte e cardio, **non i chili**. E il tocco a vuoto su quella
+  schermata non fa niente: manda solo il tasto.
 - La seduta resta nelle SharedPreferences finché non è stata mandata: al cambio di
   giorno, se non è partita, viene riproposta invece che buttata.
 
@@ -271,7 +280,7 @@ ripetizioni dentro. Il timer sale dal basso come riquadro staccato.
 
 ## Prima di chiudere una sessione
 
-1. **Alza il numero di versione della cache in `sw.js`** (`palestra-v8` → `palestra-v9`).
+1. **Alza il numero di versione della cache in `sw.js`** (`palestra-v9` → `palestra-v10`).
    Dal 2026-08-18 il service worker chiede la pagina prima alla rete, quindi una versione
    nuova arriva con un ricaricamento solo; il numero di cache va alzato lo stesso, governa
    la copia di riserva usata offline. La pulizia in `activate` tocca solo i nomi che
