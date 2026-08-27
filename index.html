@@ -561,6 +561,20 @@ function avvisoOrologio(){
     '<button class="b2" data-az="oro-no">Annulla</button></section>';
 }
 
+/* I carichi di oggi (o, dove mancano, quelli dell'ultima volta) impacchettati
+   per l'app dell'orologio: la stessa app, installata sul telefono, li riceve da
+   palestra://carichi e li inoltra al polso. Stesso formato indice:kg del
+   messaggio che torna indietro. */
+function carichiOrologioURL(){
+  var es=SCHEDA[1].es, p=[];
+  es.forEach(function(e,i){
+    if(e.t!=="serie") return;
+    var v=Number((S.pesi[e.n]!==undefined&&S.pesi[e.n]!=="")?S.pesi[e.n]:S.pesiRif[e.n]);
+    if(isFinite(v)&&v>0) p.push(i+":"+v);
+  });
+  return p.length?("palestra://carichi?d="+p.join(",")):null;
+}
+
 /* ---------- render ---------- */
 function render(){
   var h="";
@@ -838,6 +852,10 @@ function vImpostazioni(){
   h+='<textarea class="campo export" data-in="importa" rows="3" placeholder="Incolla qui un backup"></textarea>'+
      '<button class="b2" data-az="importa">Ripristina</button></section>';
 
+  h+='<section class="pannello"><div class="etichetta">App dell\'orologio</div>'+
+     '<div class="nota">Se hai installato l\'app della Palestra da polso, questo pulsante le manda i carichi dell\'ultima volta: sul telefono li riceve subito, e se c\'è un orologio collegato glieli passa. Da fare una volta, e poi solo quando cambiano.</div>'+
+     '<button class="b2" data-az="oro-carichi">Manda i carichi all\'app</button></section>';
+
   h+='<section class="pannello"><div class="etichetta">La scheda</div>'+
      '<div class="nota">Un unico programma: camminata, tutti gli esercizi coi pesi, cyclette. Esercizi e serie sono di Sofia Pilan per Virgin Active. Sono scritti dentro l\'app: per cambiarli serve una nuova versione del file.</div></section>';
   return h;
@@ -888,6 +906,11 @@ document.body.addEventListener("click",function(ev){
   else if(az==="esporta"){ S.export=JSON.stringify(raccogli()); render(); }
   else if(az==="scarica"){ scarica(); }
   else if(az==="drive-collega"||az==="drive-salva"){ driveSalva(true); }
+  else if(az==="oro-carichi"){
+    var uc=carichiOrologioURL();
+    if(!uc){ S.msg="Non c'è ancora nessun carico segnato da mandare."; render(); }
+    else location.href=uc;
+  }
   else if(az==="oro-si"){ orologioRegistra(); }
   else if(az==="oro-no"){ orologioAnnulla(); }
   else if(az==="drive-riprendi"){ driveRiprendi(); }

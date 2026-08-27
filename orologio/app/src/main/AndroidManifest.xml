@@ -29,6 +29,14 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- il travaso dei carichi: la Palestra web apre palestra://carichi
+                 e questa app, sul telefono, li riceve e li inoltra al polso -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="palestra" android:host="carichi" />
+            </intent-filter>
         </activity>
     </application>
 </manifest>

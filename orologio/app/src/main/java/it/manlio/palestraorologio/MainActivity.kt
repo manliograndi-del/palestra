@@ -133,7 +133,45 @@ class MainActivity : Activity() {
         radice.setOnTouchListener { _, ev -> gesti.onTouchEvent(ev) }
 
         carica()
+        gestisciIntent(intent)
         mostra()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        gestisciIntent(intent)
+        mostra()
+    }
+
+    /* I carichi che arrivano dalla Palestra del telefono: palestra://carichi?d=1:40,3:60
+       Stesso formato indice:kg del messaggio di ritorno. Sul telefono, oltre a
+       tenerli, li inoltriamo all'orologio collegato — è l'unico canale
+       telefono→polso, e va in quel senso una volta sola: i chili poi vivono di là. */
+    private fun gestisciIntent(int: Intent?) {
+        val u = int?.data ?: return
+        if (u.scheme != "palestra" || u.host != "carichi") return
+        val d = u.getQueryParameter("d") ?: return
+        var n = 0
+        d.split(",").forEach { coppia ->
+            val a = coppia.split(":")
+            if (a.size == 2) {
+                val i = a[0].toIntOrNull()
+                val v = a[1].toFloatOrNull()
+                if (i != null && v != null && i in SCHEDA.indices && SCHEDA[i].serie > 0 && v > 0f && v <= 300f) {
+                    kg[i] = v; n++
+                }
+            }
+        }
+        if (n == 0) return
+        salva(); vibraBreve()
+        pagina = 1          // si apre sul primo esercizio coi pesi, così i chili si vedono subito
+        avviso = null
+        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH)) {
+            try {
+                RemoteActivityHelper(this).startRemoteActivity(
+                    Intent(Intent.ACTION_VIEW).addCategory(Intent.CATEGORY_BROWSABLE).setData(u))
+            } catch (e: Exception) { /* nessun orologio collegato: pazienza */ }
+        }
     }
 
     /* ---------- memoria ---------- */

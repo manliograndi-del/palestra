@@ -234,10 +234,16 @@ Palestra sul telefono.
 - **Lo stesso APK si installa anche sul telefono** (`uses-feature ... required="false"`).
   Sul telefono non c'è nessun polso a cui mandare la seduta, quindi apre la Palestra
   direttamente: è così che si prova tutta la catena senza orologio e senza cavi.
-- I chili sull'orologio **si tengono a mano**: non esiste un canale telefono→polso
-  senza un'app installata sul telefono, quindi il polso ha la sua copia, regolata
-  con − e + (tenendo premuto ±10, passi da 2,5). La prima volta vanno impostati
-  esercizio per esercizio; poi restano e si ritoccano quando cambiano.
+- I chili sull'orologio hanno la loro copia, regolata con − e + (tenendo premuto
+  ±10, passi da 2,5). **Dal 2026-08-27 non vanno più battuti a mano la prima
+  volta**: in Impostazioni della Palestra web c'è "Manda i carichi all'app", che
+  apre `palestra://carichi?d=1:40,3:60,...` (stesso formato indice:chili del
+  messaggio di ritorno). L'APK — registrato su quello schema nel manifesto — li
+  salva e, se gira sul telefono, li **inoltra all'orologio** con
+  `RemoteActivityHelper`. È l'unico canale telefono→polso, e trasporta solo i
+  carichi, una volta: le sedute continuano ad andare nel senso opposto.
+  Manlio l'ha chiesto vedendo i trattini: "non riesce a caricare i chili
+  dell'ultima volta". Il − e + resta per i ritocchi.
 - Sulla schermata finale c'è **"Azzera la seduta"** con doppia conferma (chiesto il
   2026-08-26): azzera spunte e cardio, **non i chili**. E il tocco a vuoto su quella
   schermata non fa niente: manda solo il tasto.
@@ -280,7 +286,7 @@ ripetizioni dentro. Il timer sale dal basso come riquadro staccato.
 
 ## Prima di chiudere una sessione
 
-1. **Alza il numero di versione della cache in `sw.js`** (`palestra-v9` → `palestra-v10`).
+1. **Alza il numero di versione della cache in `sw.js`** (`palestra-v10` → `palestra-v11`).
    Dal 2026-08-18 il service worker chiede la pagina prima alla rete, quindi una versione
    nuova arriva con un ricaricamento solo; il numero di cache va alzato lo stesso, governa
    la copia di riserva usata offline. La pulizia in `activate` tocca solo i nomi che
