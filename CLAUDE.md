@@ -286,7 +286,7 @@ ripetizioni dentro. Il timer sale dal basso come riquadro staccato.
 
 ## Prima di chiudere una sessione
 
-1. **Alza il numero di versione della cache in `sw.js`** (`palestra-v10` → `palestra-v11`).
+1. **Alza il numero di versione della cache in `sw.js`** (`palestra-v11` → `palestra-v12`).
    Dal 2026-08-18 il service worker chiede la pagina prima alla rete, quindi una versione
    nuova arriva con un ricaricamento solo; il numero di cache va alzato lo stesso, governa
    la copia di riserva usata offline. La pulizia in `activate` tocca solo i nomi che

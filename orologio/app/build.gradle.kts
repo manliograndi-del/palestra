@@ -11,8 +11,8 @@ android {
     applicationId = "it.manlio.palestraorologio"
     minSdk = 30            // Wear OS 3, e va bene anche su telefono
     targetSdk = 34
-    versionCode = 5
-    versionName = "1.4"
+    versionCode = 6
+    versionName = "1.5"
   }
 
   buildTypes {

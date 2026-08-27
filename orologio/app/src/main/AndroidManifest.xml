@@ -11,7 +11,7 @@
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
-        android:label="Palestra"
+        android:label="Palestra polso"
         android:supportsRtl="false"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
 
@@ -22,7 +22,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="Palestra"
+            android:label="Palestra polso"
             android:launchMode="singleTask"
             android:screenOrientation="portrait">
             <intent-filter>
