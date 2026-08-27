@@ -511,6 +511,10 @@ class MainActivity : Activity() {
         } else {
             c.addView(testo("${e.serie} × ${e.rip}", 16f, ROSSO, true, 4))
             c.addView(rigaKg(i))
+            /* Il trattino da solo non si spiega: la prima volta va detto
+               chiaro che i chili li metti tu, e come. Poi restano. */
+            if (kg[i] == null)
+                c.addView(testo("metti i chili col + · tieni premuto: 10 alla volta", 10f, TENUE, false, 2))
             c.addView(pastiglie(i))
             val n = fatteEs(i)
             c.addView(testo(
