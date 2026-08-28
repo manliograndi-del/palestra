@@ -267,6 +267,7 @@ function avvia(){
   }
   migraSedute();
   S.indice=leggi(K_IDX,{})||{};
+  completaIndice();
   var s=leggi(K_S+S.data,null);
   S.giorno=1;
   if(s){ S.fatte=s.fatte||{}; S.pesi=s.pesi||{}; S.cardio=s.cardio||{}; }
@@ -337,6 +338,32 @@ function migraSedute(){
 function totSerie(){var t=0;SCHEDA[S.giorno].es.forEach(function(e){if(e.t==="serie")t+=e.set;});return t;}
 function fatteN(){var n=0;for(var k in S.fatte)if(S.fatte[k])n++;return n;}
 
+/* I minuti di cardio davvero fatti. Finiscono nell'indice insieme alle serie
+   perché **il Diario li legge da lì**: le due app dividono lo stesso
+   localStorage, e il Diario non conosce la scheda — non può sapere che il
+   tapis roulant dura 15'. Qui la scheda c'è, quindi il conto lo facciamo noi
+   e di là arriva un numero già pronto. Se cambi i minuti nella SCHEDA, lo
+   storico del Diario si rilegge da solo alla prossima seduta salvata. */
+function minCardio(cardio,giorno){
+  var es=(SCHEDA[giorno]||SCHEDA[1]).es, m=0;
+  for(var k in cardio){ if(!cardio[k]) continue; var e=es[Number(k)]; if(e&&e.t==="cardio") m+=e.min||0; }
+  return m;
+}
+/* Le sedute salvate prima del 2026-08-28 nell'indice non hanno i minuti: li
+   ricalcolo una volta sola rileggendo le sedute. Aggiunge un campo e basta,
+   non tocca niente di quello che c'era. */
+function completaIndice(){
+  var cambiato=false;
+  for(var d in S.indice){
+    var v=S.indice[d];
+    if(typeof v.minC==="number") continue;
+    var s=leggi(K_S+d,null);
+    v.minC=s?minCardio(s.cardio||{},s.giorno||1):0;
+    cambiato=true;
+  }
+  if(cambiato) scrivi(K_IDX,S.indice);
+}
+
 var tSalva=null;
 function salva(){
   S.spia="in corso"; spiaAgg();
@@ -351,7 +378,7 @@ function salva(){
     var ok=scrivi(K_S+S.data,{giorno:S.giorno,fatte:S.fatte,pesi:S.pesi,cardio:S.cardio,volume:vol});
     var n=fatteN();
     if(n===0 && Object.keys(S.cardio).length===0) delete S.indice[S.data];
-    else S.indice[S.data]={giorno:S.giorno,serie:n,tot:totSerie(),volume:Math.round(vol)};
+    else S.indice[S.data]={giorno:S.giorno,serie:n,tot:totSerie(),volume:Math.round(vol),minC:minCardio(S.cardio,S.giorno)};
     ok=scrivi(K_IDX,S.indice)&&ok;
     S.ultimo=S.giorno; salvaCfg();
     S.spia=ok?"salvato":"non salvato"; spiaAgg();

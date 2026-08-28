@@ -77,7 +77,14 @@ Se Manlio dice che la scheda è cambiata, modifica `SCHEDA` e ricontrolla i tota
   partito. Il riferimento vero è `S.pesiRif`, ricalcolato da `calcolaRiferimenti()`
   leggendo l'ultima seduta con data precedente a oggi.
   `ultimo` è l'ultimo giorno svolto: serve a proporre l'altro all'apertura.
-- `palestra.indice` → `{"2026-08-17": {giorno,serie,tot,volume}, ...}`
+- `palestra.indice` → `{"2026-08-17": {giorno,serie,tot,volume,minC}, ...}`
+  `minC` sono **i minuti di cardio davvero fatti**, aggiunti il 2026-08-28. Non
+  servono a niente qui dentro: **li legge il Diario**, che mostra la seduta accanto
+  alla camminata e ne stima le calorie. Il Diario non conosce la `SCHEDA` e non può
+  sapere che il tapis roulant dura 15', quindi il conto lo facciamo noi e di là
+  arriva un numero già pronto. `minCardio()` lo calcola, `completaIndice()` lo
+  riempie una volta sola per le sedute vecchie (aggiunge un campo, non tocca altro).
+  **Non toglierlo**: senza, il pannello Palestra del Diario conterebbe solo i pesi.
 - `palestra.s.YYYY-MM-DD` → `{giorno, fatte:{"i-j":true}, pesi, cardio, volume}`
 
 `fatte` usa la chiave `"<indice esercizio>-<numero serie>"`, e `cardio` l'indice secco.
@@ -98,6 +105,12 @@ apposta, non togliere quel fallback.
 **Attenzione:** sull'origine `manliograndi-del.github.io` vive anche l'app Diario, e le
 due condividono lo stesso `localStorage`. La separazione è data **solo dal prefisso**.
 Non usare mai chiavi senza prefisso `palestra.`.
+
+**Dal 2026-08-28 quella convivenza è diventata una funzione**: il Diario legge
+`palestra.indice` per mostrare la seduta del giorno e stimarne le calorie. È una
+lettura sola e in un senso solo — **il Diario non scrive mai dentro le chiavi
+`palestra.`**, e la Palestra non sa nemmeno che il Diario esiste. Se cambi la forma
+di `palestra.indice`, di là si rompe qualcosa: vai a guardare.
 
 ## Decisioni di progetto già prese, con la ragione
 
