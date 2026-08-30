@@ -33,7 +33,12 @@ costante `SCHEDA` dentro `index.html`. Due giorni alternati, recupero 1' fra le 
 **Un solo programma dal 2026-08-18**, chiesto da Manlio: lui in palestra fa tutto in
 una seduta sola, quindi i due giorni alternati non servivano. Prima erano Giorno 1 e
 Giorno 2, con un selettore in cima e l'alternanza automatica: **il selettore non c'è
-più**, `SCHEDA` ha la sola chiave `1` e `S.giorno` vale sempre 1.
+più** e `SCHEDA` ha la sola chiave `1`.
+Nella pulizia del 2026-08-29 è sparito anche `S.giorno`, che valeva 1 e basta e
+faceva credere che ci fosse ancora qualcosa da scegliere: dove serviva l'indice
+della scheda adesso c'è `SCHEDA[1]`. **Nelle sedute salvate il campo `giorno`
+resta**, perché le sedute vecchie dicono ancora `giorno:2` e lo storico le legge
+con `SCHEDA[v.giorno]||SCHEDA[1]`.
 
 Struttura chiesta da lui: una sola attività aerobica in apertura (la camminata), tutti
 i pesi di fila in mezzo, 15' di cyclette in chiusura. La bici ellittica che stava a
@@ -76,7 +81,6 @@ Se Manlio dice che la scheda è cambiata, modifica `SCHEDA` e ricontrolla i tota
   non va usato come "ultima volta", perché dopo due tasti non ricorda più da dove eri
   partito. Il riferimento vero è `S.pesiRif`, ricalcolato da `calcolaRiferimenti()`
   leggendo l'ultima seduta con data precedente a oggi.
-  `ultimo` è l'ultimo giorno svolto: serve a proporre l'altro all'apertura.
 - `palestra.indice` → `{"2026-08-17": {giorno,serie,tot,volume,minC}, ...}`
   `minC` sono **i minuti di cardio davvero fatti**, aggiunti il 2026-08-28. Non
   servono a niente qui dentro: **li legge il Diario**, che mostra la seduta accanto
@@ -280,9 +284,9 @@ Nero, bianco, rosso. Palette in `:root`:
 `--tenue #9A9A9A` · `--linea #2E2E2E` · `--rosso #E4002B` (il rosso Virgin) ·
 `--su-rosso #FFF` · `--raggio 16px`
 
-`--blu`, `--senape` e `--verde` esistono ancora ma puntano tutti al rosso: erano
-sparsi nel CSS e toglierli avrebbe voluto dire riscriverlo tutto. Non usarli per cose
-nuove, usa `--rosso`.
+`--blu`, `--senape` e `--verde` **non esistono più**: erano rimasti a puntare al
+rosso dopo il cambio di aspetto, e il 2026-08-29 non li usava più nessuno. Se ti
+serve un accento, è `--rosso`, ed è l'unico.
 
 **Il rosso è l'unico accento e significa "azione" o "fatto".** Non spenderlo per
 decorare, o smette di voler dire qualcosa. Le serie completate sono pastiglie rosse

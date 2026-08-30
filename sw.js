@@ -5,7 +5,7 @@
    vive anche l'app Diario e le due si cancellerebbero la cache a vicenda.
    Alza il numero di versione a ogni rilascio. */
 const PREFISSO = "palestra-";
-const CACHE = PREFISSO + "v12";
+const CACHE = PREFISSO + "v13";
 const FILE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
