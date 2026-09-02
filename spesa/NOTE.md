@@ -6,8 +6,15 @@ Vive in questa cartella per non toccare `index.html`, che è l'app della palestr
 ## Cosa vuole
 
 **Non vuole che sia Claude a cercare i prodotti.** L'ha detto chiaramente a metà
-lavoro: gli bastano **i volantini scaricati** da guardare da solo e **un Excel
-delle offerte** da filtrare a modo suo. La ricerca la fa lui.
+lavoro: gli bastano **i volantini scaricati** da guardare da solo e uno strumento
+per cercare a modo suo. La ricerca la fa lui.
+
+**L'Excel non serve più**: il 2026-09-02 ha detto «il file Excel puoi anche non
+farlo». `strumenti/build_xlsx.py` e `cache_vals.py` restano lì e funzionano, ma
+non fanno più parte della consegna. Non rifarlo se non lo richiede.
+
+**Vuole una pagina con dodici prodotti a scelta**, da cambiare e da allungare
+con un «+». È la forma finale del lavoro.
 
 **Zona:** Torino, quartiere Santa Rita (corso Siracusa). Il civico non serve.
 Di Mercatò ci sono punti vendita vicini: via Filadelfia, via Gaidano, corso
@@ -34,11 +41,37 @@ ultimo: voleva un indirizzo da mandare **anche a sua moglie, da un altro posto**
 condividerla dal menu della pagina stessa. Gliel'ho detto; se dice che lei non
 la vede, è quasi sicuramente quello.
 
-La pagina la genera `strumenti/pagina.py` dagli stessi dati dell'Excel
-(`strumenti/dati.py`), così i due non possono dire numeri diversi. Per
-aggiornarla si ripubblica **lo stesso percorso di file** in una sessione che
-l'ha già pubblicata, oppure si passa l'URL qui sopra come `url`: altrimenti
-esce un artifact nuovo con un indirizzo diverso e il link della moglie muore.
+La pagina la genera `strumenti/pagina.py` da `strumenti/dati.py` (i prezzi letti
+a mano) e `strumenti/lista.py` (i dodici prodotti di partenza). Per aggiornarla
+si ripubblica **lo stesso percorso di file** in una sessione che l'ha già
+pubblicata, oppure si passa l'URL qui sopra come `url`: altrimenti esce un
+artifact nuovo con un indirizzo diverso e il link della moglie muore.
+
+### Perché la lista sta nel browser e non sul server
+
+La memoria condivisa delle pagine pubblicate (capacità `db`) sarebbe la cosa
+giusta — lista sola, aggiornata per tutti e due — ma **un artifact che dichiara
+`db` diventa interno all'organizzazione** e non si può condividere fuori. Sul
+piano Pro di Manlio l'organizzazione è lui solo, quindi la moglie resterebbe
+fuori, che è esattamente quello che aveva chiesto di poter fare.
+
+Perciò la lista vive in `localStorage` (chiave `spesa.lista.v1`), una copia per
+telefono: il link si condivide con chiunque, e ognuno se la regola. Il prezzo è
+che le modifiche di lui non arrivano a lei. **Se un domani dice che vuole la
+lista condivisa davvero, si passa a `db` — ma va detto prima che così la moglie
+non entra più.** Letture e scritture sono in try/catch: in navigazione privata
+la memoria può mancare e la pagina deve funzionare lo stesso, ripartendo dai
+dodici predefiniti.
+
+### Le offerte lette a mano coprono solo tre categorie
+
+Ogni prodotto della lista ha un campo `cat`, e ce l'hanno **solo carne di bue,
+tonno e salmone**: sono le uniche categorie di cui ho letto i prezzi pagina per
+pagina. Per gli altri nove la pagina mostra soltanto in quali pagine dei
+volantini compare la parola. Senza quel legame la ricerca per testo pescava i
+«tonni all'olio d'oliva» dentro il prodotto «olio d'oliva» e sembravano offerte
+sull'olio. Se un domani si leggono a mano altre categorie, si aggiunge la
+categoria in `dati.py` e la si mette nel `cat` di `lista.py`.
 
 **Mercatò non c'è.** Il loro sito carica il volantino con JavaScript e non
 espone né un PDF né le immagini delle pagine. VolantinoFacile ce l'ha ma serve

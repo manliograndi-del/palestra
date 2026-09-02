@@ -1,34 +1,40 @@
 # -*- coding: utf-8 -*-
-"""Genera la pagina web da pubblicare. Stessi dati dell'Excel (dati.py)."""
+"""Genera la pagina web da pubblicare.
+
+Prodotti e prezzi vengono da dati.py, la lista di partenza da lista.py.
+La pagina NON usa la memoria condivisa sul server: quella renderebbe
+l'artifact apribile solo da dentro l'organizzazione Claude di Manlio, e la
+moglie deve poterlo aprire da fuori. La lista quindi vive nel browser di chi
+apre (localStorage), e ognuno può cambiarsela senza rompere quella dell'altro.
+"""
 import json, os, glob
 from dati import PRODOTTI, VOLANTINI, D
+from lista import PARTENZA
 
 PDF     = {c: f for c, _, _, f in VOLANTINI}
 PERIODO = {c: p for c, _, p, _ in VOLANTINI}
-INSEGNA = {c: i for c, i, _, _ in VOLANTINI}
 
-offerte = []
-for cat, ins, chiave, rep, pro, fmt, qta, pre, pag, fon, note in PRODOTTI:
-    offerte.append(dict(cat=cat, ins=ins, rep=rep, pro=pro, fmt=fmt,
-                        prezzo=pre, kg=round(pre/qta, 2), pag=pag,
-                        pdf=PDF[chiave], periodo=PERIODO[chiave],
-                        dubbio=(fon == D), note=note))
+offerte = [dict(cat=cat, ins=ins, rep=rep, pro=pro, fmt=fmt, prezzo=pre,
+                kg=round(pre / qta, 2), pag=pag, pdf=PDF[chiave],
+                periodo=PERIODO[chiave], dubbio=(fon == D), note=note)
+           for cat, ins, chiave, rep, pro, fmt, qta, pre, pag, fon, note in PRODOTTI]
 
 idx = json.load(open('indice.json', encoding='utf-8'))
 validi = {(os.path.basename(os.path.dirname(f)), int(os.path.basename(f)[:-4]))
           for f in glob.glob('pg/*/*.jpg')}
-pagine = [dict(ins=r['insegna'], periodo=r['validita'], pdf=PDF.get(r['chiave'], ''),
-               pag=r['pagina'], parole=r['parole'])
-          for r in idx if (r['chiave'], r['pagina']) in validi]
-pagine.sort(key=lambda r: (r['ins'], r['periodo'], r['pag']))
+pagine = sorted((dict(ins=r['insegna'], periodo=r['validita'], pdf=PDF.get(r['chiave'], ''),
+                      pag=r['pagina'], parole=r['parole'])
+                 for r in idx if (r['chiave'], r['pagina']) in validi),
+                key=lambda r: (r['ins'], r['periodo'], r['pag']))
 
-volantini = []
-for chiave, ins, per, f in VOLANTINI:
-    n = len([p for p in pagine if p['pdf'] == f])
-    if n: volantini.append(dict(ins=ins, periodo=per, pdf=f, pagine=n))
+volantini = [dict(ins=i, periodo=p, pdf=f, pagine=len([x for x in pagine if x['pdf'] == f]))
+             for c, i, p, f in VOLANTINI]
+volantini = [v for v in volantini if v['pagine']]
 
-DATI = json.dumps(dict(offerte=offerte, pagine=pagine, volantini=volantini),
-                  ensure_ascii=False, separators=(',', ':'))
+partenza = [dict(nome=n, parole=p, cat=c) for n, p, c in PARTENZA]
+
+DATI = json.dumps(dict(offerte=offerte, pagine=pagine, volantini=volantini,
+                       partenza=partenza), ensure_ascii=False, separators=(',', ':'))
 
 HTML = r'''<title>Offerte di Corso Siracusa</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Asap:ital,wght@0,400;0,500;0,600;1,400&family=Oswald:wght@500;600;700&display=swap">
@@ -62,82 +68,93 @@ HTML = r'''<title>Offerte di Corso Siracusa</title>
 *{box-sizing:border-box}
 body{background:var(--carta);color:var(--inchiostro);font-family:var(--f-testo);
   font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
-.guscio{max-width:760px;margin:0 auto;padding:0 16px 64px}
+.guscio{max-width:820px;margin:0 auto;padding:0 16px 64px}
+button{font-family:var(--f-testo)}
+:focus-visible{outline:2px solid var(--rosso);outline-offset:2px}
 
-header{padding:28px 0 18px}
-h1{font-family:var(--f-prezzo);font-weight:700;font-size:clamp(30px,8vw,44px);
-  letter-spacing:-.01em;line-height:1;margin:0;text-wrap:balance;text-transform:uppercase}
+header{padding:26px 0 4px}
+h1{font-family:var(--f-prezzo);font-weight:700;font-size:clamp(28px,7.5vw,42px);
+  letter-spacing:-.01em;line-height:1;margin:0;text-transform:uppercase;text-wrap:balance}
 h1 .zona{display:block;color:var(--rosso);font-size:.42em;letter-spacing:.14em;
   margin-bottom:9px;font-weight:600}
-.sottotitolo{color:var(--tenue);margin:10px 0 0;font-size:15px}
+.sottotitolo{color:var(--tenue);margin:12px 0 0;font-size:15px;max-width:60ch}
 
-.cerca{position:sticky;top:0;z-index:9;background:var(--carta);
-  padding:12px 0 10px;margin-top:14px;border-bottom:1px solid var(--linea)}
-.campo{display:flex;align-items:center;gap:10px;background:var(--superficie);
-  border:1.5px solid var(--linea);border-radius:11px;padding:11px 13px;box-shadow:var(--ombra)}
-.campo:focus-within{border-color:var(--rosso)}
-.campo svg{flex:0 0 18px;color:var(--tenue)}
-.campo input{flex:1;min-width:0;border:0;background:none;color:var(--inchiostro);
-  font-family:var(--f-testo);font-size:16px;outline:none}
-.campo input::placeholder{color:var(--tenue)}
-.pulisci{border:0;background:none;color:var(--tenue);cursor:pointer;font-size:20px;
-  line-height:1;padding:0 2px;display:none}
-.pulisci.on{display:block}
+.aggiungi{margin-top:20px;display:flex;gap:8px}
+.aggiungi input{flex:1;min-width:0;background:var(--superficie);color:var(--inchiostro);
+  border:1.5px solid var(--linea);border-radius:11px;padding:13px 14px;
+  font-family:var(--f-testo);font-size:16px;box-shadow:var(--ombra)}
+.aggiungi input:focus{outline:none;border-color:var(--rosso)}
+.aggiungi input::placeholder{color:var(--tenue)}
+.piu{flex:0 0 auto;background:var(--rosso);color:var(--su-rosso);border:0;
+  border-radius:11px;padding:0 20px;font-size:17px;font-weight:600;cursor:pointer;
+  min-height:48px;white-space:nowrap}
+.piu[disabled]{opacity:.4;cursor:default}
 
-.filtri{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
-.filtro{font-family:var(--f-testo);font-size:13.5px;font-weight:500;
-  border:1.5px solid var(--linea);background:var(--superficie);color:var(--inchiostro);
-  border-radius:99px;padding:6px 13px;cursor:pointer}
-.filtro[aria-pressed="true"]{background:var(--rosso);border-color:var(--rosso);color:var(--su-rosso)}
-.filtro:focus-visible,.campo input:focus-visible{outline:2px solid var(--rosso);outline-offset:2px}
+.conteggio{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  margin:30px 0 4px;border-bottom:2px solid var(--inchiostro);padding-bottom:6px}
+.conteggio h2{font-family:var(--f-prezzo);text-transform:uppercase;letter-spacing:.03em;
+  font-size:19px;font-weight:600;margin:0}
+.conteggio span{color:var(--tenue);font-size:13px;font-variant-numeric:tabular-nums}
 
-section{margin-top:30px}
-.titolo-sez{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
-  border-bottom:2px solid var(--inchiostro);padding-bottom:6px;margin-bottom:2px}
-.titolo-sez h2{font-family:var(--f-prezzo);text-transform:uppercase;letter-spacing:.02em;
-  font-size:20px;font-weight:600;margin:0}
-.titolo-sez .conta{color:var(--tenue);font-size:13px;font-variant-numeric:tabular-nums}
+.schede{display:grid;gap:0}
+@media (min-width:660px){.schede{grid-template-columns:1fr 1fr;gap:0 26px}}
 
-.riga{display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:start;
-  padding:14px 0;border-bottom:1px solid var(--linea)}
-.nome{font-weight:600;font-size:16.5px;line-height:1.25;margin:0}
-.meta{color:var(--tenue);font-size:13.5px;margin:4px 0 0}
-.meta b{color:var(--inchiostro);font-weight:600}
-.prezzo{text-align:right;font-family:var(--f-prezzo);font-variant-numeric:tabular-nums;
-  line-height:1;white-space:nowrap}
-.prezzo .n{display:block;font-size:26px;font-weight:700;color:var(--rosso)}
-.prezzo .u{display:block;font-family:var(--f-testo);font-size:11px;letter-spacing:.08em;
+.scheda{border-bottom:1px solid var(--linea);padding:15px 0}
+.testa{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:start;
+  width:100%;background:none;border:0;padding:0;text-align:left;cursor:pointer;color:inherit}
+.testa h3{margin:0;font-size:17.5px;font-weight:600;line-height:1.2}
+.riassunto{grid-column:1;color:var(--tenue);font-size:13.5px;margin:4px 0 0}
+.riassunto b{color:var(--inchiostro);font-weight:600}
+.miglior{grid-column:2;grid-row:1/3;text-align:right;font-family:var(--f-prezzo);
+  font-variant-numeric:tabular-nums;line-height:1;white-space:nowrap}
+.miglior .n{display:block;font-size:23px;font-weight:700;color:var(--rosso)}
+.miglior .u{display:block;font-family:var(--f-testo);font-size:10.5px;letter-spacing:.08em;
   text-transform:uppercase;color:var(--tenue);margin-top:3px}
-.prezzo .conf{display:block;font-family:var(--f-testo);font-size:12.5px;color:var(--tenue);margin-top:5px}
-.tag{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
-.pill{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;font-weight:600;
-  border-radius:5px;padding:3px 7px}
-.pill.best{background:var(--verde-tenue);color:var(--verde)}
-.pill.warn{background:var(--ambra-tenue);color:var(--ambra)}
-.nota{grid-column:1/-1;font-size:13.5px;color:var(--tenue);margin:3px 0 0}
-.dove{grid-column:1/-1;font-size:13px;color:var(--tenue);margin:5px 0 0;
-  padding-left:10px;border-left:2px solid var(--linea)}
+.freccia{grid-column:2;grid-row:1/3;align-self:center;color:var(--tenue);font-size:15px}
 
-.pagine .riga{grid-template-columns:1fr auto}
-.pagine .num{font-family:var(--f-prezzo);font-size:22px;font-weight:600;
-  font-variant-numeric:tabular-nums;color:var(--inchiostro)}
-.pagine .num small{display:block;font-family:var(--f-testo);font-size:10.5px;
-  letter-spacing:.08em;text-transform:uppercase;color:var(--tenue);font-weight:400}
-.parole{font-size:13px;color:var(--tenue);margin:5px 0 0;overflow-wrap:anywhere}
-.parole mark{background:var(--rosso);color:var(--su-rosso);border-radius:3px;padding:0 2px}
+.dettaglio{padding:4px 0 2px}
+.blocco{margin-top:12px}
+.blocco h4{font-family:var(--f-prezzo);text-transform:uppercase;letter-spacing:.05em;
+  font-size:12.5px;font-weight:600;color:var(--tenue);margin:0 0 6px}
+.voce{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:8px 0;
+  border-top:1px solid var(--linea)}
+.voce .n2{margin:0;font-size:15px;font-weight:600;line-height:1.25}
+.voce .m2{margin:2px 0 0;color:var(--tenue);font-size:13px}
+.voce .p2{text-align:right;font-family:var(--f-prezzo);font-variant-numeric:tabular-nums;
+  font-size:19px;font-weight:600;color:var(--rosso);line-height:1.1;white-space:nowrap}
+.voce .p2 small{display:block;font-family:var(--f-testo);font-size:11px;color:var(--tenue);
+  font-weight:400;letter-spacing:.06em;text-transform:uppercase}
+.voce .avv{grid-column:1/-1;margin:4px 0 0;font-size:12.5px;color:var(--ambra);
+  background:var(--ambra-tenue);border-radius:5px;padding:4px 7px;display:inline-block}
+.voce .meno{grid-column:1/-1;margin:5px 0 0;justify-self:start;font-size:11.5px;
+  letter-spacing:.05em;text-transform:uppercase;font-weight:600;color:var(--verde);
+  background:var(--verde-tenue);border-radius:5px;padding:3px 7px}
+.voce .dove2{grid-column:1/-1;margin:4px 0 0;font-size:12.5px;color:var(--tenue)}
+.pagina{display:flex;justify-content:space-between;gap:12px;padding:7px 0;
+  border-top:1px solid var(--linea);font-size:13.5px}
+.pagina .p-ins{font-weight:600}
+.pagina .p-per{color:var(--tenue);font-size:12.5px}
+.pagina .p-num{font-family:var(--f-prezzo);font-size:17px;font-weight:600;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.nulla{color:var(--tenue);font-size:13.5px;margin:6px 0 0}
 
-.vuoto{padding:26px 0;color:var(--tenue);font-size:15px}
-.piu{display:block;width:100%;margin-top:14px;font-family:var(--f-testo);font-size:14px;
-  font-weight:600;background:var(--superficie2);color:var(--inchiostro);
-  border:1.5px solid var(--linea);border-radius:9px;padding:11px;cursor:pointer}
-.piu:focus-visible{outline:2px solid var(--rosso);outline-offset:2px}
+.azioni{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.azioni button{background:var(--superficie2);color:var(--inchiostro);border:1.5px solid var(--linea);
+  border-radius:9px;padding:9px 15px;font-size:14px;font-weight:600;cursor:pointer;min-height:42px}
+.azioni .togli{color:var(--rosso)}
+.rinomina{display:flex;gap:8px;margin-top:12px}
+.rinomina input{flex:1;min-width:0;background:var(--superficie);color:var(--inchiostro);
+  border:1.5px solid var(--rosso);border-radius:9px;padding:10px 12px;
+  font-family:var(--f-testo);font-size:16px}
+.rinomina input:focus{outline:none}
+.rinomina button{background:var(--rosso);color:var(--su-rosso);border:0;border-radius:9px;
+  padding:0 16px;font-size:15px;font-weight:600;cursor:pointer;min-height:44px}
 
-.avvisi{margin-top:36px;background:var(--superficie2);border-radius:12px;padding:18px 18px 6px}
+.avvisi{margin-top:34px;background:var(--superficie2);border-radius:12px;padding:18px 18px 6px}
 .avvisi h2{font-family:var(--f-prezzo);text-transform:uppercase;font-size:16px;
   letter-spacing:.04em;margin:0 0 10px}
-.avvisi p{font-size:14px;margin:0 0 12px;color:var(--inchiostro)}
-.avvisi p .etichetta{color:var(--ambra);font-weight:600}
-
+.avvisi p{font-size:14px;margin:0 0 12px}
+.avvisi .etichetta{color:var(--ambra);font-weight:600}
 .elenco-vol{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:1px;
   background:var(--linea);border:1px solid var(--linea);border-radius:10px;overflow:hidden}
 .elenco-vol li{background:var(--superficie);padding:11px 13px;display:flex;
@@ -145,218 +162,268 @@ section{margin-top:30px}
 .elenco-vol .ins{font-weight:600}
 .elenco-vol .per{color:var(--tenue);font-size:13px}
 .elenco-vol .np{color:var(--tenue);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
-
-footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--linea);
+footer{margin-top:32px;padding-top:16px;border-top:1px solid var(--linea);
   color:var(--tenue);font-size:13px}
-@media (min-width:620px){ .riga{grid-template-columns:1fr auto} .prezzo .n{font-size:30px} }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
 <div class="guscio">
 <header>
-  <h1><span class="zona">Torino · Corso Siracusa</span>Offerte della settimana</h1>
-  <p class="sottotitolo">Carne di bue, tonno e salmone nei volantini di Lidl, Eurospin, MD,
-  Bennet, Ipercoop e Carrefour Iper. Ordinati per <b>prezzo al chilo</b>, che è l'unico modo
-  onesto di confrontare confezioni di taglia diversa. Letti a mano dai volantini il 2 settembre 2026.</p>
+  <h1><span class="zona">Torino · Corso Siracusa</span>La lista della spesa</h1>
+  <p class="sottotitolo">I prodotti che tieni d'occhio, cercati dentro i volantini di Lidl,
+  Eurospin, MD, Bennet, Ipercoop e Carrefour Iper. Tocca un prodotto per aprirlo. Puoi
+  cambiarne il nome, toglierlo, o aggiungerne quanti vuoi qui sotto.</p>
+  <form class="aggiungi" id="form-aggiungi">
+    <input id="nuovo" type="text" placeholder="Aggiungi un prodotto: pane, birra, yogurt…"
+           autocomplete="off" aria-label="Nome del prodotto da aggiungere">
+    <button class="piu" type="submit" id="btn-piu" disabled>Aggiungi</button>
+  </form>
 </header>
 
-<div class="cerca">
-  <label class="campo">
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-      <circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg>
-    <input id="q" type="search" placeholder="Cerca: tonno, caffè, detersivo…"
-           autocomplete="off" aria-label="Cerca fra le offerte e nelle pagine dei volantini">
-    <button class="pulisci" id="pulisci" type="button" aria-label="Cancella la ricerca">×</button>
-  </label>
-  <div class="filtri" id="filtri" role="group" aria-label="Filtra per categoria"></div>
-</div>
-
-<div id="risultati"></div>
+<div class="conteggio"><h2>La tua lista</h2><span id="conta"></span></div>
+<div class="schede" id="schede"></div>
 
 <section class="avvisi">
-  <h2>Prima di fidarti</h2>
-  <p>I prezzi qui sopra li ho letti uno per uno dalla pagina del volantino. Le righe segnate
-  <span class="etichetta">da controllare</span> no: vengono da riassunti trovati online, e di errori
-  così ne ho già trovati tre — una rollata data a 7,99 al chilo che in realtà era 7,99 la confezione
-  da 600 grammi, un salmone dato per 150 grammi che era da 500, un macinato dato a 6,99 che sul
-  volantino faceva 8,99. Quelle tre righe controllale sul PDF.</p>
-  <p>Certi prezzi valgono <b>solo con la tessera</b>: soci Coop all'Ipercoop, Lidl Plus, Bennet Club.
+  <h2>Come leggerla</h2>
+  <p>Per <b>carne di bue, tonno e salmone</b> ho letto i prezzi a mano, uno per uno, dalla
+  pagina del volantino: lì trovi il prezzo al chilo e sai già dove costa meno. Per tutto il
+  resto la pagina ti dice soltanto <b>in quali pagine dei volantini compare quella parola</b>:
+  il prezzo lo leggi tu aprendo il PDF a quella pagina. È come cercare in un indice, non in un
+  listino.</p>
+  <p>Le righe segnate <span class="etichetta">da controllare</span> vengono da riassunti trovati
+  online e possono essere sbagliate: di errori così ne ho già trovati tre. Controllale sul PDF.</p>
+  <p>Certi prezzi valgono <b>solo con la tessera</b> — soci Coop, Lidl Plus, Bennet Club.
   Dov'è così sta scritto nella riga.</p>
-  <p>Le parole che compaiono cercando dentro le pagine le ha lette il computer dalle immagini:
-  sono spesso storpiate, e i prezzi non li riconosce quasi mai. Servono a dirti <b>quale pagina
-  aprire</b>, non quanto costa.</p>
+  <p>Le parole le ha lette il computer dalle immagini dei volantini: sulle scritte grandi e
+  colorate spesso sbaglia, e i prezzi non li riconosce quasi mai. Se un prodotto dà zero
+  pagine, può esserci lo stesso: prova un'altra parola.</p>
+  <p><b>La lista è tua e resta su questo telefono.</b> Se la apri altrove, o se la apre tua
+  moglie, si riparte dai dodici prodotti di partenza e ognuno se la cambia come vuole.</p>
   <h2 style="margin-top:18px">I volantini</h2>
   <ul class="elenco-vol" id="elenco-vol"></ul>
-  <p style="margin-top:12px">Mercatò non c'è: il loro sito non pubblica il volantino in un formato
-  che si riesca a scaricare.</p>
+  <p style="margin-top:12px">Mercatò non c'è: il loro sito non pubblica il volantino in un
+  formato che si riesca a scaricare.</p>
 </section>
 
-<footer>Fatto per Manlio. I numeri di pagina sono quelli dei PDF dei volantini.</footer>
+<footer>Volantini letti il 2 settembre 2026. I numeri di pagina sono quelli dei PDF.</footer>
 </div>
 
 <script>
 const DATI = __DATI__;
-const norm = s => (s||'').toLowerCase()
-  .normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/['\u2019]/g,' ');
+const CHIAVE = 'spesa.lista.v1';
 
-let categoria = 'Tutto';
-let query = '';
-let tuttePagine = false;
+const norm = s => (s || '').toLowerCase()
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/['\u2019]/g, ' ');
+const eur = n => n.toFixed(2).replace('.', ',');
 
-const CATEGORIE = ['Tutto','Carne di bue','Tonno','Salmone'];
-const filtri = document.getElementById('filtri');
-CATEGORIE.forEach(c => {
-  const b = document.createElement('button');
-  b.className = 'filtro'; b.type = 'button'; b.textContent = c;
-  b.setAttribute('aria-pressed', String(c === categoria));
-  b.onclick = () => {
-    categoria = c;
-    [...filtri.children].forEach(x => x.setAttribute('aria-pressed', String(x.textContent === c)));
-    disegna();
-  };
-  filtri.appendChild(b);
-});
+function leggiLista() {
+  try {
+    const g = localStorage.getItem(CHIAVE);
+    if (g) {
+      const v = JSON.parse(g);
+      if (Array.isArray(v) && v.length) return v;
+    }
+  } catch (e) { /* niente memoria: si riparte dai predefiniti */ }
+  return DATI.partenza.map(p => ({ ...p }));
+}
+function salvaLista() {
+  try { localStorage.setItem(CHIAVE, JSON.stringify(lista)); }
+  catch (e) { /* memoria piena o bloccata: la pagina funziona lo stesso, non ricorda */ }
+}
+
+let lista = leggiLista();
+let aperto = null;
+
+function offerteDi(v) {
+  return v.cat ? DATI.offerte.filter(o => o.cat === v.cat) : [];
+}
+function pagineDi(v) {
+  const termini = (v.parole && v.parole.length ? v.parole : [v.nome]).map(norm);
+  return DATI.pagine.filter(p => {
+    const t = norm(p.parole);
+    return termini.some(x => t.includes(x));
+  });
+}
+
+function schedaOfferta(o, primo) {
+  const d = document.createElement('div');
+  d.className = 'voce';
+  d.innerHTML = `<div><p class="n2"></p><p class="m2"></p></div>
+    <p class="p2"><span></span><small>al kg</small></p>`;
+  d.querySelector('.n2').textContent = o.pro;
+  d.querySelector('.m2').textContent = `${o.ins} · ${o.fmt} · ${eur(o.prezzo)} € la confezione`;
+  d.querySelector('.p2 span').textContent = eur(o.kg) + ' €';
+  if (primo) {
+    const m = document.createElement('p');
+    m.className = 'meno'; m.textContent = 'il meno caro';
+    d.appendChild(m);
+  }
+  if (o.dubbio) {
+    const a = document.createElement('p');
+    a.className = 'avv'; a.textContent = 'da controllare sul volantino';
+    d.appendChild(a);
+  }
+  if (o.note) {
+    const n = document.createElement('p');
+    n.className = 'dove2'; n.textContent = o.note;
+    d.appendChild(n);
+  }
+  const w = document.createElement('p');
+  w.className = 'dove2';
+  w.textContent = o.pag ? `${o.pdf} — pagina ${o.pag}` : `${o.pdf} — pagina non individuata`;
+  d.appendChild(w);
+  return d;
+}
+
+function rigaPagina(p) {
+  const d = document.createElement('div');
+  d.className = 'pagina';
+  d.innerHTML = `<span><span class="p-ins"></span><br><span class="p-per"></span></span>
+                 <span class="p-num"></span>`;
+  d.querySelector('.p-ins').textContent = p.ins;
+  d.querySelector('.p-per').textContent = p.periodo;
+  d.querySelector('.p-num').textContent = 'pag. ' + p.pag;
+  return d;
+}
+
+function disegna() {
+  const cont = document.getElementById('schede');
+  cont.textContent = '';
+  document.getElementById('conta').textContent =
+    lista.length + (lista.length === 1 ? ' prodotto' : ' prodotti');
+
+  lista.forEach((v, i) => {
+    const off = offerteDi(v), pag = pagineDi(v);
+    const apertaQui = aperto === i;
+
+    const s = document.createElement('article');
+    s.className = 'scheda';
+
+    const testa = document.createElement('button');
+    testa.className = 'testa';
+    testa.type = 'button';
+    testa.setAttribute('aria-expanded', String(apertaQui));
+    testa.innerHTML = '<h3></h3><p class="riassunto"></p>';
+    testa.querySelector('h3').textContent = v.nome;
+    const ri = testa.querySelector('.riassunto');
+    if (off.length) {
+      ri.innerHTML = '<b></b> offerte lette a mano · <span></span> pagine nei volantini';
+      ri.querySelector('b').textContent = off.length;
+      ri.querySelector('span').textContent = pag.length;
+    } else {
+      ri.textContent = pag.length
+        ? `${pag.length} pagine nei volantini lo nominano`
+        : 'nessuna pagina lo nomina';
+    }
+    if (off.length) {
+      const m = document.createElement('p');
+      m.className = 'miglior';
+      m.innerHTML = '<span class="n"></span><span class="u">al kg, il meno caro</span>';
+      m.querySelector('.n').textContent = eur(off[0].kg) + ' €';
+      testa.appendChild(m);
+    } else {
+      const f = document.createElement('span');
+      f.className = 'freccia';
+      f.textContent = apertaQui ? '▲' : '▼';
+      testa.appendChild(f);
+    }
+    testa.onclick = () => { aperto = apertaQui ? null : i; disegna(); };
+    s.appendChild(testa);
+
+    if (apertaQui) {
+      const det = document.createElement('div');
+      det.className = 'dettaglio';
+
+      if (off.length) {
+        const b = document.createElement('div');
+        b.className = 'blocco';
+        b.innerHTML = '<h4>Prezzi letti dal volantino</h4>';
+        off.forEach((o, k) => b.appendChild(schedaOfferta(o, k === 0)));
+        det.appendChild(b);
+      }
+
+      const b2 = document.createElement('div');
+      b2.className = 'blocco';
+      b2.innerHTML = '<h4>Pagine da guardare</h4>';
+      if (pag.length) {
+        pag.slice(0, 14).forEach(p => b2.appendChild(rigaPagina(p)));
+        if (pag.length > 14) {
+          const p = document.createElement('p');
+          p.className = 'nulla';
+          p.textContent = `e altre ${pag.length - 14} pagine.`;
+          b2.appendChild(p);
+        }
+      } else {
+        const p = document.createElement('p');
+        p.className = 'nulla';
+        p.textContent = 'Il computer non ha letto questa parola in nessuna pagina. Prova a cambiare il nome del prodotto con una parola più comune.';
+        b2.appendChild(p);
+      }
+      det.appendChild(b2);
+
+      const az = document.createElement('div');
+      az.className = 'azioni';
+      const bRi = document.createElement('button');
+      bRi.type = 'button'; bRi.textContent = 'Cambia prodotto';
+      const bTo = document.createElement('button');
+      bTo.type = 'button'; bTo.className = 'togli'; bTo.textContent = 'Togli dalla lista';
+      bTo.onclick = () => {
+        lista.splice(i, 1); aperto = null; salvaLista(); disegna();
+      };
+      az.append(bRi, bTo);
+      det.appendChild(az);
+
+      bRi.onclick = () => {
+        az.remove();
+        const f = document.createElement('form');
+        f.className = 'rinomina';
+        f.innerHTML = '<input type="text" aria-label="Nuovo nome del prodotto"><button type="submit">Salva</button>';
+        const inp = f.querySelector('input');
+        inp.value = v.nome;
+        f.onsubmit = ev => {
+          ev.preventDefault();
+          const t = inp.value.trim();
+          if (!t) return;
+          lista[i] = { nome: t, parole: [t], cat: null };
+          salvaLista(); disegna();
+        };
+        det.appendChild(f);
+        inp.focus(); inp.select();
+      };
+
+      s.appendChild(det);
+    }
+    cont.appendChild(s);
+  });
+}
 
 const vol = document.getElementById('elenco-vol');
 DATI.volantini.forEach(v => {
   const li = document.createElement('li');
-  li.innerHTML = `<span><span class="ins"></span> <span class="per"></span></span>
-                  <span class="np"></span>`;
+  li.innerHTML = `<span><span class="ins"></span> <span class="per"></span></span><span class="np"></span>`;
   li.querySelector('.ins').textContent = v.ins;
   li.querySelector('.per').textContent = v.periodo;
   li.querySelector('.np').textContent = v.pagine + ' pag.';
   vol.appendChild(li);
 });
 
-const eur = n => n.toFixed(2).replace('.', ',');
-
-function evidenzia(testo, q) {
-  const frag = document.createDocumentFragment();
-  if (!q) { frag.appendChild(document.createTextNode(testo)); return frag; }
-  const n = norm(testo), nq = norm(q);
-  let i = 0, p;
-  while ((p = n.indexOf(nq, i)) !== -1) {
-    frag.appendChild(document.createTextNode(testo.slice(i, p)));
-    const m = document.createElement('mark');
-    m.textContent = testo.slice(p, p + nq.length);
-    frag.appendChild(m);
-    i = p + nq.length;
-  }
-  frag.appendChild(document.createTextNode(testo.slice(i)));
-  return frag;
-}
-
-function rigaOfferta(o, migliore) {
-  const d = document.createElement('article');
-  d.className = 'riga';
-  d.innerHTML = `<div><p class="nome"></p><p class="meta"></p></div>
-    <div class="prezzo"><span class="n"></span><span class="u">al kg</span><span class="conf"></span></div>
-    <div class="tag"></div><p class="nota"></p><p class="dove"></p>`;
-  d.querySelector('.nome').appendChild(evidenzia(o.pro, query));
-  const meta = d.querySelector('.meta');
-  meta.innerHTML = '<b></b> · <span></span> · <span></span>';
-  meta.querySelector('b').textContent = o.ins;
-  meta.querySelectorAll('span')[0].textContent = o.rep;
-  meta.querySelectorAll('span')[1].textContent = o.fmt;
-  d.querySelector('.n').textContent = eur(o.kg) + ' €';
-  d.querySelector('.conf').textContent = eur(o.prezzo) + ' € la confezione';
-  const tag = d.querySelector('.tag');
-  if (migliore) tag.insertAdjacentHTML('beforeend', '<span class="pill best">il più conveniente</span>');
-  if (o.dubbio) tag.insertAdjacentHTML('beforeend', '<span class="pill warn">da controllare</span>');
-  const nota = d.querySelector('.nota');
-  if (o.note) nota.textContent = o.note; else nota.remove();
-  d.querySelector('.dove').textContent = o.pag
-    ? `${o.pdf} — pagina ${o.pag}`
-    : `${o.pdf} — pagina non individuata`;
-  return d;
-}
-
-function disegna() {
-  const out = document.getElementById('risultati');
-  out.textContent = '';
-  const q = norm(query);
-
-  let off = DATI.offerte.filter(o => categoria === 'Tutto' || o.cat === categoria);
-  if (q) off = off.filter(o => norm(o.pro + ' ' + o.ins + ' ' + o.rep + ' ' + o.fmt + ' ' + o.note).includes(q));
-
-  const cats = CATEGORIE.slice(1).filter(c => off.some(o => o.cat === c));
-  cats.forEach(c => {
-    const gruppo = off.filter(o => o.cat === c);
-    const sec = document.createElement('section');
-    const h = document.createElement('div');
-    h.className = 'titolo-sez';
-    h.innerHTML = '<h2></h2><span class="conta"></span>';
-    h.querySelector('h2').textContent = c;
-    h.querySelector('.conta').textContent =
-      `da ${eur(gruppo[0].kg)} € a ${eur(gruppo[gruppo.length-1].kg)} € al kg`;
-    sec.appendChild(h);
-    gruppo.forEach((o, i) => sec.appendChild(rigaOfferta(o, i === 0 && !q)));
-    out.appendChild(sec);
-  });
-
-  if (!off.length) {
-    const v = document.createElement('p');
-    v.className = 'vuoto';
-    v.textContent = 'Nessuna offerta fra quelle che ho letto a mano. Guarda qui sotto: forse è in una pagina del volantino.';
-    out.appendChild(v);
-  }
-
-  if (q.length >= 3) {
-    const trovate = DATI.pagine.filter(p =>
-      norm(p.parole).includes(q));
-    const sec = document.createElement('section');
-    sec.className = 'pagine';
-    const h = document.createElement('div');
-    h.className = 'titolo-sez';
-    h.innerHTML = '<h2>Nelle pagine dei volantini</h2><span class="conta"></span>';
-    h.querySelector('.conta').textContent =
-      trovate.length ? `${trovate.length} pagine su ${DATI.pagine.length}` : `niente su ${DATI.pagine.length} pagine`;
-    sec.appendChild(h);
-    const mostra = tuttePagine ? trovate : trovate.slice(0, 8);
-    mostra.forEach(p => {
-      const d = document.createElement('article');
-      d.className = 'riga';
-      d.innerHTML = `<div><p class="nome"></p><p class="meta"></p><p class="parole"></p></div>
-        <div class="num"><span></span><small>pagina</small></div>`;
-      d.querySelector('.nome').textContent = p.ins;
-      d.querySelector('.meta').textContent = p.periodo;
-      d.querySelector('.num span').textContent = p.pag;
-      const par = p.parole.split(' ').filter(w => norm(w).includes(q)).slice(0, 12).join(' · ');
-      d.querySelector('.parole').appendChild(evidenzia(par, query));
-      sec.appendChild(d);
-    });
-    if (!trovate.length) {
-      const v = document.createElement('p');
-      v.className = 'vuoto';
-      v.textContent = 'Il computer non ha letto questa parola in nessuna pagina. Può darsi che ci sia lo stesso: sulle scritte grandi e colorate spesso sbaglia. Prova una parola più comune.';
-      sec.appendChild(v);
-    }
-    if (trovate.length > mostra.length) {
-      const b = document.createElement('button');
-      b.className = 'piu'; b.type = 'button';
-      b.textContent = `Mostra le altre ${trovate.length - mostra.length} pagine`;
-      b.onclick = () => { tuttePagine = true; disegna(); };
-      sec.appendChild(b);
-    }
-    out.appendChild(sec);
-  }
-}
-
-const input = document.getElementById('q');
-const pulisci = document.getElementById('pulisci');
-input.addEventListener('input', () => {
-  query = input.value.trim();
-  tuttePagine = false;
-  pulisci.classList.toggle('on', query.length > 0);
-  disegna();
-});
-pulisci.onclick = () => {
-  input.value = ''; query = ''; tuttePagine = false;
-  pulisci.classList.remove('on'); disegna(); input.focus();
+const nuovo = document.getElementById('nuovo');
+const btnPiu = document.getElementById('btn-piu');
+nuovo.addEventListener('input', () => { btnPiu.disabled = !nuovo.value.trim(); });
+document.getElementById('form-aggiungi').onsubmit = ev => {
+  ev.preventDefault();
+  const t = nuovo.value.trim();
+  if (!t) return;
+  lista.push({ nome: t, parole: [t], cat: null });
+  aperto = lista.length - 1;
+  nuovo.value = ''; btnPiu.disabled = true;
+  salvaLista(); disegna();
+  document.querySelectorAll('.scheda')[aperto].scrollIntoView({ block: 'center' });
 };
+
 disegna();
 </script>'''
 
 open('out/pagina.html', 'w', encoding='utf-8').write(HTML.replace('__DATI__', DATI))
 print('scritta out/pagina.html —', len(HTML) + len(DATI), 'caratteri;',
-      len(offerte), 'offerte,', len(pagine), 'pagine indicizzate')
+      len(partenza), 'prodotti di partenza,', len(offerte), 'offerte,', len(pagine), 'pagine')
