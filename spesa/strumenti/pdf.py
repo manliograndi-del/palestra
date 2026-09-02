@@ -4,10 +4,10 @@ import glob, os
 from PIL import Image
 
 NOMI = {
- 'lidl':       'Lidl',              'eurospin':   'Eurospin',
- 'md':         'MD',                'bennet':     'Bennet',
- 'carriper20': 'Carrefour Iper',    'carriper04': 'Carrefour Iper',
- 'carrmarket': 'Carrefour Market',
+ 'lidl':           'Lidl',            'eurospin':       'Eurospin',
+ 'md':             'MD',              'bennet':         'Bennet',
+ 'ipercoop':       'Ipercoop',        'ipercoop_extra': 'Ipercoop',
+ 'carriper20':     'Carrefour Iper',  'carriper04':     'Carrefour Iper',
 }
 os.makedirs('out', exist_ok=True)
 for chiave in NOMI:

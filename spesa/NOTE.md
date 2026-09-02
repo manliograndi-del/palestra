@@ -13,7 +13,9 @@ delle offerte** da filtrare a modo suo. La ricerca la fa lui.
 Di Mercatò ci sono punti vendita vicini: via Filadelfia, via Gaidano, corso
 Brunelleschi.
 
-**Insegne:** MD · Eurospin · Carrefour · Bennet · Mercatò · Lidl
+**Insegne:** MD · Eurospin · Carrefour Iper · Bennet · Ipercoop · Lidl
+Il 2026-09-02 ha detto di **togliere Carrefour Market e mettere Ipercoop**.
+Mercatò resta nell'elenco ma non si riesce a scaricare (sotto il perché).
 
 **Prodotti che gli interessano sempre:** carne di bue in confezioni grandi,
 tonno, salmone. Resta da chiarire quale salmone (affumicato, fresco o surgelato):
@@ -21,14 +23,46 @@ gliel'ho chiesto e non ha ancora risposto.
 
 ## Com'è andata il 2026-09-02
 
-Consegnati: 7 PDF (242 pagine in tutto) e `offerte-supermercati-torino.xlsx`
-con tre fogli — guida, 23 prodotti suoi col prezzo al chilo, e l'indice
-cercabile di tutte le pagine.
+Consegnati: 8 PDF (277 pagine), `offerte-supermercati-torino.xlsx` con tre
+fogli — guida, 24 prodotti suoi col prezzo al chilo, indice cercabile di tutte
+le pagine — e **una pagina web pubblicata**, che è quello che ha chiesto per
+ultimo: voleva un indirizzo da mandare **anche a sua moglie, da un altro posto**.
+
+    https://claude.ai/code/artifact/a6782ea0-6822-4026-87e7-705012966595
+
+**Le pagine pubblicate nascono private**: perché la moglie la apra, lui deve
+condividerla dal menu della pagina stessa. Gliel'ho detto; se dice che lei non
+la vede, è quasi sicuramente quello.
+
+La pagina la genera `strumenti/pagina.py` dagli stessi dati dell'Excel
+(`strumenti/dati.py`), così i due non possono dire numeri diversi. Per
+aggiornarla si ripubblica **lo stesso percorso di file** in una sessione che
+l'ha già pubblicata, oppure si passa l'URL qui sopra come `url`: altrimenti
+esce un artifact nuovo con un indirizzo diverso e il link della moglie muore.
 
 **Mercatò non c'è.** Il loro sito carica il volantino con JavaScript e non
 espone né un PDF né le immagini delle pagine. VolantinoFacile ce l'ha ma serve
 le pagine da `data.volantinofacile.it` con un identificativo per pagina non
 prevedibile, e tutto ciò che non sia la copertina risponde 403. Da ritentare.
+
+**L'Ipercoop di Torino è Nova Coop**, non la Coop nazionale: il volantino è
+quello piemontese. Si prende da `novacoop.it`, che rimanda a
+`negozi.volantinopiu.com/ccno-8001120004796.html` (punto vendita di via Livorno
+49). Lì le pagine hanno indirizzi **prevedibili**, molto più comodi degli altri:
+
+    https://resources.volantinopiu.it/flyer/2/8/4/8/0/pagine/<N>.jpg
+
+cioè le cifre dell'identificativo del volantino separate da barre. Attenzione:
+in quella pagina **il titolo di ogni volantino sta prima della sua immagine, non
+dopo** — leggendolo al contrario ho scaricato per sbaglio il volantino degli
+zaini di scuola e quello dei frigoriferi. Controllare sempre le parole che
+l'OCR tira fuori: se saltano fuori «quaderni» e «zaino», è quello sbagliato.
+Dei cinque volantini Nova Coop, quelli di spesa sono **Sottocosto** ed
+**Extra offerte**.
+
+**Da Ipercoop molti prezzi sono riservati ai soci Coop** e sul volantino ci sono
+tutti e due, barrato e scontato. Nell'Excel e nella pagina ho messo il prezzo
+soci scrivendolo nelle note, perché è quello che paga lui se ha la tessera.
 
 ## La rete
 

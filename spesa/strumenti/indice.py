@@ -11,13 +11,14 @@ import glob, os, re, json
 
 # aggiornare le date a ogni volantino nuovo
 META = {
- 'lidl':       ('Lidl',             'dal 3 al 9 settembre 2026 (sottocosto fino al 12)'),
- 'eurospin':   ('Eurospin',         'dal 24 agosto al 6 settembre 2026'),
- 'md':         ('MD',               'dal 25 agosto al 6 settembre 2026'),
- 'bennet':     ('Bennet',           'dal 27 agosto al 9 settembre 2026'),
- 'carriper20': ('Carrefour Iper',   'dal 20 agosto al 3 settembre 2026'),
- 'carriper04': ('Carrefour Iper',   'dal 4 settembre 2026'),
- 'carrmarket': ('Carrefour Market', 'dal 4 settembre 2026'),
+ 'lidl':          ('Lidl',             'dal 3 al 9 settembre 2026 (sottocosto fino al 12)'),
+ 'eurospin':      ('Eurospin',         'dal 24 agosto al 6 settembre 2026'),
+ 'md':            ('MD',               'dal 25 agosto al 6 settembre 2026'),
+ 'bennet':        ('Bennet',           'dal 27 agosto al 9 settembre 2026'),
+ 'ipercoop':      ('Ipercoop',         'Sottocosto, dal 31 agosto al 9 settembre 2026'),
+ 'ipercoop_extra':('Ipercoop',         'Extra offerte, dal 27 agosto al 9 settembre 2026'),
+ 'carriper20':    ('Carrefour Iper',   'dal 20 agosto al 3 settembre 2026'),
+ 'carriper04':    ('Carrefour Iper',   'dal 4 settembre 2026'),
 }
 VOC = set('aeiouàèéìòù')
 
