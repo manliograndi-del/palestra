@@ -229,7 +229,19 @@ function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").repl
 function num(v,d){return (Number(v)||0).toFixed(d||0).replace(".",",");}
 
 var memOk=true;
-function leggi(k,def){try{var v=localStorage.getItem(k);return v==null?def:JSON.parse(v);}catch(e){memOk=false;return def;}}
+/* Due guasti diversi, e prima erano confusi in uno: se **il browser** non dà la
+   memoria (navigazione privata) è un problema di tutta l'app, e `memOk` diventa
+   falso; se invece è **un singolo valore** a essere illeggibile — una scrittura
+   interrotta a metà — il browser sta benissimo e va solo restituito il valore
+   di riserva. Confonderli faceva comparire "questo browser non permette il
+   salvataggio", che è falso e spaventa, proprio nel momento in cui l'app si
+   stava rimettendo in piedi da sola. */
+function leggi(k,def){
+  var v;
+  try{ v=localStorage.getItem(k); }catch(e){ memOk=false; return def; }
+  if(v==null) return def;
+  try{ return JSON.parse(v); }catch(e){ return def; }
+}
 function scrivi(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){memOk=false;return false;}}
 
 var S={
@@ -256,6 +268,7 @@ function avvia(){
   }
   migraSedute();
   S.indice=leggi(K_IDX,{})||{};
+  ricostruisciIndice();
   completaIndice();
   var s=leggi(K_S+S.data,null);
   if(s){ S.fatte=s.fatte||{}; S.pesi=s.pesi||{}; S.cardio=s.cardio||{}; }
@@ -363,6 +376,35 @@ function minCardio(cardio,giorno){
 /* Le sedute salvate prima del 2026-08-28 nell'indice non hanno i minuti: li
    ricalcolo una volta sola rileggendo le sedute. Aggiunge un campo e basta,
    non tocca niente di quello che c'era. */
+/* ---------- rimettere in piedi l'elenco delle sedute ----------
+   Nel Diario, il 2026-09-02, l'elenco dei giorni si è svuotato mentre le sedute
+   di qui — stessa memoria, stesso telefono — erano intatte: segno che a
+   rovinarsi era stato l'indice, non i dati. Basta una scrittura interrotta a
+   metà perché quel testo diventi illeggibile e `leggi()` torni `{}`.
+   Le sedute vere stanno ognuna per conto suo in `palestra.s.<data>`: da lì
+   l'elenco si ricostruisce. Gira a ogni avvio e **aggiunge soltanto**. */
+function ricostruisciIndice(){
+  var rimesse=0;
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(!k||k.indexOf(K_S)!==0) continue;
+      var d=k.slice(K_S.length);
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||S.indice[d]) continue;
+      var sd=leggi(k,null); if(!sd) continue;
+      var fatte=sd.fatte||{}, n=0;
+      for(var q in fatte) if(fatte[q]) n++;
+      var cardio=sd.cardio||{};
+      if(n===0&&Object.keys(cardio).length===0) continue;
+      S.indice[d]={giorno:sd.giorno||1,serie:n,tot:34,volume:Math.round(sd.volume||0),minC:minCardio(cardio,sd.giorno||1)};
+      rimesse++;
+    }
+  }catch(e){}
+  if(rimesse){ scrivi(K_IDX,S.indice);
+    S.msg=rimesse===1?"Ho ritrovato una seduta uscita dall\u2019elenco e l\u2019ho rimessa a posto."
+                     :"Ho ritrovato "+rimesse+" sedute uscite dall\u2019elenco e le ho rimesse a posto."; }
+  return rimesse;
+}
 function completaIndice(){
   var cambiato=false;
   for(var d in S.indice){

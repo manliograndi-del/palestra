@@ -170,6 +170,18 @@ di `palestra.indice`, di là si rompe qualcosa: vai a guardare.
 
 ## Che i dati non spariscano
 
+`ricostruisciIndice()` rimette in piedi l'elenco delle sedute leggendo i
+`palestra.s.<data>`. Gira a ogni avvio e **aggiunge soltanto**. Nel Diario, il
+2026-09-02, l'elenco dei giorni si è svuotato mentre le sedute di qui — stessa
+memoria, stesso telefono — erano intatte: segno che a rovinarsi era stato
+l'indice, non i dati. Se un giorno l'app sembra vuota, guarda lì per prima cosa.
+
+`leggi()` distingue due guasti che prima confondeva: il browser che non dà la
+memoria (`memOk` falso, problema di tutta l'app) e un singolo valore
+illeggibile (il browser sta benissimo, si torna al valore di riserva). Prima
+bastava un valore rovinato per far comparire "questo browser non permette il
+salvataggio".
+
 **Una copia su Drive in attesa parte subito se l'app se ne va** (`inPartenza`,
 dal 2026-09-02). Nel Diario quel giorno una copia che stava aspettando il suo
 minuto non è mai partita, perché l'app era sparita prima: il giorno segnato quel
