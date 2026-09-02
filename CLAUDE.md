@@ -170,6 +170,14 @@ di `palestra.indice`, di là si rompe qualcosa: vai a guardare.
 
 ## Che i dati non spariscano
 
+**Una copia su Drive in attesa parte subito se l'app se ne va** (`inPartenza`,
+dal 2026-09-02). Nel Diario quel giorno una copia che stava aspettando il suo
+minuto non è mai partita, perché l'app era sparita prima: il giorno segnato quel
+giorno non c'era più da nessuna parte. Adesso l'attesa è di 25 secondi e la
+copia in sospeso parte quando la pagina va in secondo piano o viene chiusa,
+mentre è ancora viva e la richiesta fa in tempo.
+
+
 `chiediMemoriaStabile()` chiede a Chrome di non buttare via i dati di questa app
 (`navigator.storage.persist()`), dal 2026-09-02: quel giorno il **Diario** di
 Manlio si è trovato vuoto sul telefono. Non è stata l'app — in nessuna delle due

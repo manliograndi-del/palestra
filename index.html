@@ -481,6 +481,15 @@ function alRisveglio(){
 }
 document.addEventListener("visibilitychange",alRisveglio);
 window.addEventListener("pageshow",alRisveglio);
+/* **Se una copia su Drive è in attesa e l'app se ne va, parte subito.** Nel
+   Diario, il 2026-09-02, una copia che aspettava non è partita mai perché
+   l'app era sparita prima, e il giorno segnato quel giorno non c'era più da
+   nessuna parte. Qui la pagina è ancora viva e la richiesta fa in tempo. */
+function inPartenza(){ if(tDrive) driveSalva(false); }
+window.addEventListener("pagehide",inPartenza);
+document.addEventListener("visibilitychange",function(){
+  if(document.visibilityState==="hidden") inPartenza();
+});
 /* Se l'app è già aperta, il telefono non la ricarica: cambia solo l'indirizzo.
    Senza questo, la seduta mandata dall'orologio non comparirebbe mai. */
 window.addEventListener("hashchange",function(){
@@ -1161,7 +1170,7 @@ function driveScollega(){
 function driveFraPoco(){
   if(!S.drive.on) return;
   clearTimeout(tDrive);
-  tDrive=setTimeout(function(){ driveSalva(false); },60000);
+  tDrive=setTimeout(function(){ driveSalva(false); },25000);
 }
 function quandoSalvato(ts){
   if(!ts) return "mai";
