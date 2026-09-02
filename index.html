@@ -765,7 +765,12 @@ function vStorico(){
      mesi vuoti: un mese senza rossi dice quanto uno pieno. */
   var primoMese=meseDi(tutte[0]), ultimoMese=meseDi(oggiISO());
   if(ultimoMese<primoMese) ultimoMese=primoMese;
-  var mese=S.mese||meseDi(oggiISO());
+  /* **Si apre sull'ultimo mese in cui ti sei allenato, non sul mese di oggi.**
+     Il 1º settembre 2026, nel Diario, questo ha fatto credere a Manlio che
+     fossero spariti tutti i dati: il mese nuovo era ancora senza niente e il
+     calendario si apriva lì. Qui vale lo stesso, e qui è anche più facile che
+     succeda — in palestra non ci va tutti i giorni. */
+  var mese=S.mese||meseDi(tutte[tutte.length-1]);
   if(mese<primoMese) mese=primoMese;
   if(mese>ultimoMese) mese=ultimoMese;
 

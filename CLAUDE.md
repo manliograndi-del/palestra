@@ -151,6 +151,11 @@ di `palestra.indice`, di là si rompe qualcosa: vai a guardare.
   almeno un peso segnato.
   I chili di ogni singola seduta erano **già** salvati (`pesi` dentro `palestra.s.*`) e
   già visibili nel dettaglio: lui chiedeva l'andamento nel tempo, non il singolo giorno.
+- **Lo Storico si apre sull'ultimo mese in cui ti sei allenato**, non sul mese di
+  oggi. Il 2026-09-01 nel Diario questo ha fatto credere a Manlio di aver perso
+  tutti i dati: il mese nuovo era ancora vuoto e il calendario si apriva lì. Qui
+  vale lo stesso ed è anche più facile che capiti, perché in palestra non ci va
+  tutti i giorni. **Non rimettere `S.mese||meseDi(oggiISO())`.**
 - **Lo Storico si apre su un riepilogo mensile** (chiesto il 2026-08-18): calendario del
   mese con i giorni allenati in rosso, frecce per spostarsi, e sotto i totali del mese —
   allenamenti, serie, volume. Si naviga anche sui mesi vuoti fra il primo allenamento e
