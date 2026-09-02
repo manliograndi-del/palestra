@@ -313,6 +313,11 @@ piene (prima erano verdi). Titoli in maiuscolo pesante, pulsanti a pastiglia
 (`border-radius:99px`), riquadri a 16px, barra in basso con la voce attiva su fondo
 rosso pieno.
 
+Nel `manifest.webmanifest` i colori della schermata di avvio erano rimasti
+quelli chiari del Diario fino al 2026-09-02: aprendo l'app installata lampeggiava
+un rettangolo color crema prima del nero. Adesso sono neri tutti e due. Se
+ritocchi la palette, quel file non se ne accorge da solo.
+
 **Niente font di Virgin**: è un carattere loro e caricarlo significherebbe dipendere
 dalla rete, che in palestra non c'è. Si usano i caratteri di sistema spinti su peso
 (800–900) e spaziatura negativa.
