@@ -41,6 +41,17 @@ ultimo: voleva un indirizzo da mandare **anche a sua moglie, da un altro posto**
 condividerla dal menu della pagina stessa. Gliel'ho detto; se dice che lei non
 la vede, è quasi sicuramente quello.
 
+**La moglie non vive con lui** (detto il 2026-09-02): apre da un'altra casa, da
+un altro telefono, e non ha niente di installato. Per questo esiste anche
+`out/spesa-da-sola.html`, che `strumenti/pagina.py` scrive accanto alla pagina
+pubblicata: è lo stesso identico contenuto ma con `<!doctype>`, `<head>` e
+`<body>` attorno, perché quelli **il servizio li mette da sé alla pagina
+pubblicata e il file grezzo non ce li ha**. Quel file si apre a doppio clic,
+senza account e senza rete — i caratteri di Google non si caricano e scende ai
+caratteri di sistema, tutto il resto funziona perché dati e codice sono dentro.
+Si manda per posta o WhatsApp. **Non si perde niente rispetto al link**: la
+lista sta comunque nel browser di chi apre, quindi era già una copia a testa.
+
 La pagina la genera `strumenti/pagina.py` da `strumenti/dati.py` (i prezzi letti
 a mano) e `strumenti/lista.py` (i dodici prodotti di partenza). Per aggiornarla
 si ripubblica **lo stesso percorso di file** in una sessione che l'ha già

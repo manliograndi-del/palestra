@@ -421,6 +421,18 @@ document.getElementById('form-agg').onsubmit = ev => {
 disegna();
 </script>'''
 
-open('out/pagina.html', 'w', encoding='utf-8').write(HTML.replace('__DATI__', DATI))
+pagina = HTML.replace('__DATI__', DATI)
+open('out/pagina.html', 'w', encoding='utf-8').write(pagina)
+
+# Copia autonoma da mandare per posta o WhatsApp: la pagina pubblicata viene
+# avvolta dal servizio in <!doctype>/<head>/<body>, il file grezzo no. Questa
+# se li porta dietro e si apre a doppio clic, senza account e senza rete
+# (i caratteri di Google non si caricano e si scende ai caratteri di sistema).
+INTESTA = ('<!doctype html>\n<html lang="it">\n<head>\n<meta charset="utf-8">\n'
+           '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+           '<style>body{margin:0}img{max-width:100%}</style>\n')
+sola = INTESTA + pagina.replace('<title>', '<title>', 1) + '\n</body>\n</html>\n'
+sola = sola.replace('</style>\n\n<div class="guscio">', '</style>\n</head>\n<body>\n<div class="guscio">', 1)
+open('out/spesa-da-sola.html', 'w', encoding='utf-8').write(sola)
 print('scritta —', len(HTML) + len(DATI), 'caratteri;', len(partenza), 'prodotti,',
       len(offerte), 'offerte,', len(pagine), 'pagine')
