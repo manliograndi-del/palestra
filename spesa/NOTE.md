@@ -91,15 +91,45 @@ non entra più.** Letture e scritture sono in try/catch: in navigazione privata
 la memoria può mancare e la pagina deve funzionare lo stesso, ripartendo dai
 dodici predefiniti.
 
-### Le offerte lette a mano coprono solo tre categorie
+### Tutte e dodici le categorie hanno i prezzi
 
-Ogni prodotto della lista ha un campo `cat`, e ce l'hanno **solo carne di bue,
-tonno e salmone**: sono le uniche categorie di cui ho letto i prezzi pagina per
-pagina. Per gli altri nove la pagina mostra soltanto in quali pagine dei
-volantini compare la parola. Senza quel legame la ricerca per testo pescava i
-«tonni all'olio d'oliva» dentro il prodotto «olio d'oliva» e sembravano offerte
-sull'olio. Se un domani si leggono a mano altre categorie, si aggiunge la
-categoria in `dati.py` e la si mette nel `cat` di `lista.py`.
+Il 2026-09-02 Manlio ha chiesto i prezzi anche per le nove categorie che avevo
+messo io. Adesso `dati.py` ha **68 righe su 12 categorie**, tutte lette
+guardando le pagine — nessuna inventata, nessuna dedotta dall'OCR.
+
+Ogni prodotto di `lista.py` ha il campo `cat` che punta alla categoria di
+`dati.py`. Il legame è esplicito e serve: cercando per testo, «olio» pescava i
+tonni all'olio d'oliva e sembravano offerte sull'olio. Un prodotto aggiunto a
+mano dalla pagina non ha categoria, ma se quello che scrive combacia col nome o
+con una parola di uno dei dodici, `costruisci()` glielo attacca da sola.
+
+**Le unità non sono tutte il chilo.** `UNITA` in `dati.py` dice per ogni
+categoria come si confronta: chilo per carne, tonno, salmone, caffè, pasta,
+pollo e formaggio; **litro** per latte e olio; **uovo**, **rotolo** e
+**lavaggio** per le altre tre. Al chilo il detersivo darebbe un numero vero e
+inutile. I detersivi stanno sotto i 20 centesimi a lavaggio, per questo `eur()`
+nella pagina usa tre decimali sotto l'euro: con due diventavano tutti «0,14 €».
+
+Due righe confrontano di proposito cose non identiche, e lo dicono nelle note:
+l'ammorbidente Coccolino sta fra i detersivi (si usa in aggiunta, non al posto)
+e il caffè in capsule sta col macinato (al chilo costa cinque volte tanto). E la
+carta igienica Regina è «4 rotoloni pari a 12 rotoli»: il conto usa i 12
+dichiarati sul pacco, e la nota dice quanto fa sui 4 veri.
+
+### L'aggiornamento delle offerte
+
+Manlio ha chiesto che **anche la moglie possa aggiornare le offerte dal suo
+telefono**. Non si può, e non è un limite da aggirare: aggiornare vuol dire
+riscaricare i volantini, rifare l'OCR e rileggere le pagine a occhio. Una pagina
+web non lo può fare — i siti dei supermercati non concedono CORS, e comunque i
+prezzi grandi l'OCR non li legge.
+
+Quello che invece funziona: **ripubblicando l'artifact, chi ha il link vede i
+prezzi nuovi ricaricando**, senza che nessuno debba mandare niente a nessuno.
+Nella pagina c'è una sezione che lo dice, con la data dei volantini letti
+(campo `letto` in `pagina.py`, **da aggiornare a ogni giro**). Il file
+`spesa-da-sola.html` invece resta fermo: è la copia di riserva, non il canale
+di aggiornamento.
 
 **Mercatò non c'è.** Il loro sito carica il volantino con JavaScript e non
 espone né un PDF né le immagini delle pagine. VolantinoFacile ce l'ha ma serve

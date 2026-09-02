@@ -18,14 +18,14 @@ prima versione:
 La lista vive in localStorage, non sul server: vedi NOTE.md.
 """
 import json, os, glob
-from dati import PRODOTTI, VOLANTINI, D
+from dati import PRODOTTI, VOLANTINI, UNITA, D
 from lista import PARTENZA
 
 PDF     = {c: f for c, _, _, f in VOLANTINI}
 PERIODO = {c: p for c, _, p, _ in VOLANTINI}
 
 offerte = [dict(cat=cat, ins=ins, rep=rep, pro=pro, fmt=fmt, prezzo=pre,
-                kg=round(pre / qta, 2), pag=pag, pdf=PDF[chiave],
+                unitario=round(pre / qta, 3), pag=pag, pdf=PDF[chiave],
                 periodo=PERIODO[chiave], dubbio=(fon == D), note=note)
            for cat, ins, chiave, rep, pro, fmt, qta, pre, pag, fon, note in PRODOTTI]
 
@@ -44,7 +44,9 @@ volantini = [v for v in (dict(ins=i, periodo=p, pdf=f,
 partenza = [dict(nome=n, parole=p, cat=c) for n, p, c in PARTENZA]
 
 DATI = json.dumps(dict(offerte=offerte, pagine=pagine, volantini=volantini,
-                       partenza=partenza), ensure_ascii=False, separators=(',', ':'))
+                       partenza=partenza, unita={k: v[0] for k, v in UNITA.items()},
+                       letto='2 settembre 2026'),
+                  ensure_ascii=False, separators=(',', ':'))
 
 HTML = r'''<title>Offerte di Corso Siracusa</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Asap:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap">
@@ -109,10 +111,10 @@ h1 span{display:block;color:var(--rosso);font-size:12px;letter-spacing:.16em;mar
 .capo h2{font-family:var(--f-prezzo);text-transform:uppercase;letter-spacing:.02em;
   font-size:22px;font-weight:600;margin:0}
 .capo .quanti{color:var(--tenue);font-size:13px;font-variant-numeric:tabular-nums}
-.gestisci{display:flex;gap:14px;margin:8px 0 0}
-.gestisci button{background:none;border:0;padding:4px 0;font-size:13.5px;font-weight:600;
-  color:var(--tenue);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.gestisci .togli{color:var(--rosso)}
+.gestisci{display:flex;gap:9px;margin:12px 0 0;flex-wrap:wrap}
+.gestisci button{background:var(--carta);border:1.5px solid var(--linea-forte);border-radius:9px;
+  padding:10px 16px;font-size:14.5px;font-weight:600;cursor:pointer;min-height:44px}
+.gestisci .togli{border-color:var(--rosso);color:var(--rosso)}
 .form-rin{display:none;gap:8px;margin-top:10px}
 .form-rin.on{display:flex}
 .form-rin input{flex:1;min-width:0;border:1.5px solid var(--rosso);border-radius:10px;
@@ -197,19 +199,32 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--linea);
 
 <section class="spiega">
   <h2>Come leggerla</h2>
-  <p>Per <b>carne di bue, tonno e salmone</b> ho letto i prezzi a mano, uno per uno, dalla
-  pagina del volantino: trovi il prezzo al chilo e sai subito dove costa meno. Per gli altri
-  prodotti la pagina ti dice <b>in quali pagine dei volantini compare quella parola</b>, e il
-  prezzo lo leggi tu aprendo il PDF. È un indice, non un listino: quei prezzi non li ho letti,
-  e inventarli sarebbe peggio che non averli.</p>
+  <p>I <b>dodici prodotti di partenza</b> hanno i prezzi letti a mano, uno per uno, dalle pagine
+  dei volantini. Il confronto è per unità e cambia col prodotto: la carne al chilo, il latte al
+  litro, le uova all'uovo, la carta igienica al rotolo, il detersivo a lavaggio. Al chilo il
+  detersivo darebbe un numero vero e inutile.</p>
+  <p>Se <b>aggiungi un prodotto tuo</b>, quello i prezzi non ce li ha: ti dice in quali pagine
+  dei volantini compare la parola, e il prezzo lo leggi tu aprendo il PDF a quella pagina. Se
+  però scrivi una parola che questa pagina già conosce — «caffe», «bovino», «uovo» — si
+  riaggancia da sola ai prezzi giusti.</p>
   <p>Le righe segnate <span class="ev">da controllare</span> vengono da riassunti trovati
   online e possono essere sbagliate: di errori così ne ho già trovati tre.</p>
-  <p>Certi prezzi valgono <b>solo con la tessera</b> — soci Coop, Lidl Plus, Bennet Club.
-  Dov'è così sta scritto nella riga.</p>
+  <p>Certi prezzi valgono <b>solo con la tessera</b> — soci Coop, Lidl Plus, Bennet Club — e
+  qualche riga confronta cose diverse fra loro: il caffè in capsule al chilo costa sempre molto
+  più del macinato, e l'ammorbidente non è detersivo. Sta scritto nella riga.</p>
   <p>Le parole le ha lette il computer dalle immagini: sulle scritte grandi spesso sbaglia. Se
   un prodotto dà zero pagine può esserci lo stesso, prova a chiamarlo in un altro modo.</p>
-  <p><b>La lista resta su questo telefono.</b> Chi apre il link da un altro posto riparte dai
-  dodici prodotti di partenza e se li cambia per conto suo.</p>
+
+  <h2 style="margin-top:18px">Quando arrivano le offerte nuove</h2>
+  <p>I prezzi qui sopra sono dei volantini <b id="letto"></b>. Quando escono quelli nuovi
+  <b>la pagina si aggiorna da sola</b>: chi l'ha aperta col link ricarica e vede i prezzi nuovi,
+  senza premere niente e senza che nessuno debba rimandare niente. Vale per chiunque abbia il
+  link, da qualsiasi telefono.</p>
+  <p>L'unica copia che <b>non</b> si aggiorna è il file salvato sul telefono: quello resta fermo
+  al giorno in cui è stato fatto. Se ti interessa avere sempre i prezzi giusti, usa il link.</p>
+  <p><b>La lista dei prodotti resta su questo telefono.</b> Chi apre il link da un altro posto
+  riparte dai dodici di partenza e se li cambia per conto suo, senza toccare i tuoi.</p>
+
   <h2 style="margin-top:18px">I volantini</h2>
   <ul class="vol" id="vol"></ul>
   <p style="margin-top:12px">Mercatò non c'è: il loro sito non pubblica il volantino in un
@@ -225,7 +240,9 @@ const CHIAVE = 'spesa.lista.v1';
 
 const norm = s => (s || '').toLowerCase()
   .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/['\u2019]/g, ' ');
-const eur = n => n.toFixed(2).replace('.', ',');
+/* i detersivi stanno sotto i 20 centesimi a lavaggio: con due decimali
+   diventerebbero tutti «0,14 €» e non si distinguerebbero piu */
+const eur = n => (n < 1 ? n.toFixed(3) : n.toFixed(2)).replace('.', ',');
 
 function leggiLista() {
   try {
@@ -244,6 +261,17 @@ let scelto = 0;
 let tutteLePagine = false;
 
 const offerteDi = v => v.cat ? DATI.offerte.filter(o => o.cat === v.cat) : [];
+
+/* Se quello che scrive combacia con uno dei dodici di partenza (col nome o con
+   una delle sue parole), gli attacca la stessa categoria: cosi chi riscrive
+   «caffe» a mano ritrova i prezzi invece delle sole pagine. */
+function costruisci(testo) {
+  const t = norm(testo);
+  const p = DATI.partenza.find(x =>
+    norm(x.nome) === t || (x.parole || []).some(w => norm(w) === t));
+  return p ? { nome: testo, parole: p.parole, cat: p.cat }
+           : { nome: testo, parole: [testo], cat: null };
+}
 const pagineDi = v => {
   const t = (v.parole && v.parole.length ? v.parole : [v.nome]).map(norm);
   return DATI.pagine.filter(p => { const s = norm(p.parole); return t.some(x => s.includes(x)); });
@@ -279,7 +307,7 @@ function rigaPrezzo(o, primo) {
   const d = document.createElement('article');
   d.className = 'prezzo-riga';
   d.innerHTML = `<div><p class="nome"></p><p class="sotto"></p></div>
-    <p class="val"><span class="n"></span><span class="u">al kg</span></p>
+    <p class="val"><span class="n"></span><span class="u"></span></p>
     <div class="coda"></div>`;
   d.querySelector('.nome').textContent = o.pro;
   const s = d.querySelector('.sotto');
@@ -287,7 +315,8 @@ function rigaPrezzo(o, primo) {
   s.querySelector('b').textContent = o.ins;
   s.querySelectorAll('span')[0].textContent = o.fmt;
   s.querySelectorAll('span')[1].textContent = eur(o.prezzo) + ' € la confezione';
-  d.querySelector('.val .n').textContent = eur(o.kg) + ' €';
+  d.querySelector('.val .n').textContent = eur(o.unitario) + ' €';
+  d.querySelector('.val .u').textContent = DATI.unita[o.cat] || 'al kg';
   const coda = d.querySelector('.coda');
   if (primo) coda.insertAdjacentHTML('beforeend', '<span class="bollo meno">il meno caro</span>');
   if (o.dubbio) coda.insertAdjacentHTML('beforeend', '<span class="bollo dubbio">da controllare</span>');
@@ -332,16 +361,17 @@ function disegna() {
   capo.innerHTML = '<h2></h2><span class="quanti"></span>';
   capo.querySelector('h2').textContent = v.nome;
   capo.querySelector('.quanti').textContent = off.length
-    ? `${off.length} offerte lette dal volantino · ${pag.length} pagine da guardare`
+    ? `${off.length} ${off.length === 1 ? 'offerta letta' : 'offerte lette'} dal volantino · ${pag.length} pagine da guardare`
     : `${pag.length} ${pag.length === 1 ? 'pagina lo nomina' : 'pagine lo nominano'}`;
   out.appendChild(capo);
 
   const g = document.createElement('div');
   g.className = 'gestisci';
   const bRin = document.createElement('button');
-  bRin.type = 'button'; bRin.textContent = 'cambia nome';
+  bRin.type = 'button'; bRin.textContent = 'Cambia nome';
   const bTog = document.createElement('button');
-  bTog.type = 'button'; bTog.className = 'togli'; bTog.textContent = 'togli dalla lista';
+  bTog.type = 'button'; bTog.className = 'togli';
+  bTog.textContent = 'Togli «' + v.nome + '» dalla lista';
   bTog.onclick = () => {
     lista.splice(scelto, 1);
     if (scelto > 0) scelto--;
@@ -358,7 +388,7 @@ function disegna() {
     ev.preventDefault();
     const t = inp.value.trim();
     if (!t) return;
-    lista[scelto] = { nome: t, parole: [t], cat: null };
+    lista[scelto] = costruisci(t);
     salva(); disegna();
   };
   bRin.onclick = () => { fr.classList.add('on'); inp.value = v.nome; inp.focus(); inp.select(); };
@@ -410,13 +440,15 @@ document.getElementById('form-agg').onsubmit = ev => {
   const c = document.getElementById('nuovo');
   const t = c.value.trim();
   if (!t) return;
-  lista.push({ nome: t, parole: [t], cat: null });
+  lista.push(costruisci(t));
   scelto = lista.length - 1;
   tutteLePagine = false;
   c.value = '';
   document.getElementById('form-agg').classList.remove('on');
   salva(); disegna();
 };
+
+document.getElementById('letto').textContent = 'letti il ' + DATI.letto;
 
 disegna();
 </script>'''
