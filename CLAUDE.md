@@ -168,6 +168,20 @@ di `palestra.indice`, di là si rompe qualcosa: vai a guardare.
 - Cambiare giorno con serie già spuntate era impedito di proposito, quando i giorni erano
   due. Ora il programma è unico e la scelta non esiste più.
 
+## Che i dati non spariscano
+
+`chiediMemoriaStabile()` chiede a Chrome di non buttare via i dati di questa app
+(`navigator.storage.persist()`), dal 2026-09-02: quel giorno il **Diario** di
+Manlio si è trovato vuoto sul telefono. Non è stata l'app — in nessuna delle due
+c'è una riga che cancelli la memoria, verificato — ma la pulizia automatica del
+browser o una cancellazione dei dati di navigazione. Per un'app installata sulla
+schermata Home Chrome di solito accetta senza chiedere niente. **Non è una
+garanzia**: il file di backup scaricato resta l'unica cosa che salva davvero.
+
+Se ricapita, la strada del recupero è provata e funziona: Impostazioni →
+"Collega Google Drive" (che con la palestra vuota **non sovrascrive niente** e
+dice di premere Riprendi) → "Riprendi le sedute da Drive".
+
 ## La copia su Google Drive
 
 Aggiunta il 2026-08-24, uguale a quella del Diario e per la stessa ragione: i carichi

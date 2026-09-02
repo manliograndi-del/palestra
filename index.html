@@ -260,6 +260,7 @@ function avvia(){
   var s=leggi(K_S+S.data,null);
   if(s){ S.fatte=s.fatte||{}; S.pesi=s.pesi||{}; S.cardio=s.cardio||{}; }
   calcolaRiferimenti();
+  chiediMemoriaStabile();
   if(!memOk) S.msg="Questo browser non permette il salvataggio. Esci dalla navigazione privata.";
   S.orologio=leggiOrologio();
   render();
@@ -275,6 +276,28 @@ function calcolaRiferimenti(){
   if(ult&&ult.pesi) S.pesiRif=ult.pesi;
 }
 
+/* ---------- chiedere al telefono di non buttare via i dati ----------
+   Il 2026-09-02 il Diario di Manlio si è trovato vuoto: non l'ha svuotato
+   l'app — in tutto il codice non c'è una riga che cancelli la memoria — ma
+   qualcosa fuori, la pulizia automatica di Chrome quando lo spazio scarseggia
+   oppure una cancellazione dei dati di navigazione. Contro la prima una difesa
+   c'è: `navigator.storage.persist()` dice al browser che questi dati non sono
+   roba di passaggio. Per un'app installata sulla schermata Home Chrome di
+   solito dice di sì senza chiedere niente. Non è una garanzia — una
+   cancellazione fatta a mano porta via tutto lo stesso — e il file di backup
+   resta la cosa che salva davvero. */
+var memPersistente=null;
+function chiediMemoriaStabile(){
+  if(!navigator.storage||!navigator.storage.persist) return;
+  navigator.storage.persisted().then(function(gia){
+    if(gia){ memPersistente=true; return true; }
+    return navigator.storage.persist().then(function(ok){ memPersistente=ok; return ok; });
+  }).then(function(){
+    /* la risposta arriva dopo il primo disegno: se sta guardando le
+       Impostazioni, la riga va aggiornata */
+    if(S.vista==="impostazioni") render();
+  }).catch(function(){});
+}
 function salvaCfg(){ scrivi(K_CFG,{pesiPrec:S.pesiPrec,riposo:S.riposo,schermo:S.schermo,schedaV:S.schedaV,drive:S.drive}); }
 
 /* Rinumera le sedute salvate dopo un riordino della scheda. Gira una volta
@@ -865,7 +888,9 @@ function vImpostazioni(){
   h+='</section>';
 
   h+='<section class="pannello"><div class="etichetta">Copia di sicurezza</div>'+
-     '<div class="nota">I dati stanno solo su questo telefono. Se cancelli i dati del browser, spariscono.</div>'+
+     '<div class="nota">I dati stanno solo su questo telefono. Se cancelli i dati del browser, spariscono. <strong>Scarica un file ogni tanto</strong>: la copia su Drive segue anche gli errori, il file scaricato \u00e8 una fotografia che resta ferma.'+
+       (memPersistente===true?' Il telefono ha accettato di non cancellare da solo i dati di questa app.'
+        :memPersistente===false?' Attenzione: il telefono <strong>non</strong> ha promesso di tenere i dati al riparo dalla sua pulizia automatica.':'')+'</div>'+
      '<button class="b1" data-az="scarica">Scarica il file di backup</button>'+
      '<button class="b2" data-az="esporta">Mostra il testo da copiare</button>';
   if(S.export) h+='<textarea class="campo export" rows="6" readonly>'+esc(S.export)+'</textarea>';
