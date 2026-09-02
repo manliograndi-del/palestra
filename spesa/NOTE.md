@@ -47,6 +47,23 @@ si ripubblica **lo stesso percorso di file** in una sessione che l'ha già
 pubblicata, oppure si passa l'URL qui sopra come `url`: altrimenti esce un
 artifact nuovo con un indirizzo diverso e il link della moglie muore.
 
+### Com'è fatta la pagina, e perché
+
+Manlio ha provato la prima versione e l'ha bocciata: «è brutto e non è comodo
+da navigare», «così non si può vedere». Due cose da non rifare:
+
+- **Niente tema scuro.** Il suo telefono è in modalità notte e la pagina gli si
+  apriva nera. Adesso c'è **un solo tema chiaro**, sfondo bianco, e nel CSS
+  **non esiste** il blocco `prefers-color-scheme: dark`. Se lo rimetti, si
+  riapre nera da lui. Lo sfondo è dichiarato su `html` e su `body`, perché
+  senza, la pagina prende quello di chi la ospita.
+- **I prodotti sono bottoni in cima**, dentro una barra `sticky`: se ne tocca
+  uno e la lista di sotto si riempie subito, già ordinata dal meno caro. Prima
+  erano schede da aprire e chiudere una alla volta e per arrivare al tonno
+  bisognava scorrere. Il «+ aggiungi» è l'ultimo bottone della fila.
+
+Bersagli grandi (44-46 px) come nella Palestra: si usa in piedi, in negozio.
+
 ### Perché la lista sta nel browser e non sul server
 
 La memoria condivisa delle pagine pubblicate (capacità `db`) sarebbe la cosa
