@@ -218,6 +218,11 @@ var RINUMERA_3={                             /* dai due giorni al programma unic
 };
 
 var K_CFG="palestra.config", K_IDX="palestra.indice", K_S="palestra.s.";
+/* La copia di riserva delle impostazioni. **L'indice si può sempre ricostruire
+   dalle sedute; questo no**: i carichi di partenza, il recupero e il
+   collegamento a Drive esistono in un posto solo. Dal 2026-09-02 se ne
+   scrivono due copie: se la prima non si legge, si prende la seconda. */
+var K_CFG2="palestra.config.bis";
 var GG=["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"];
 var MM=["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
 
@@ -259,7 +264,8 @@ var S={
 
 /* ---------- avvio ---------- */
 function avvia(){
-  var cfg=leggi(K_CFG,null);
+  var cfg=leggi(K_CFG,null), diRiserva=false;
+  if(!cfg){ cfg=leggi(K_CFG2,null); diRiserva=!!cfg; }
   if(cfg){
     S.pesiPrec=cfg.pesiPrec||{}; S.riposo=cfg.riposo||60;
     S.schermo=cfg.schermo!==false;
@@ -267,6 +273,7 @@ function avvia(){
     if(cfg.drive) S.drive=Object.assign({on:false,id:null,ultimo:null,rev:null},cfg.drive);
   }
   migraSedute();
+  if(diRiserva){ salvaCfg(); S.msg="Le impostazioni erano illeggibili: le ho riprese dalla copia di riserva."; }
   S.indice=leggi(K_IDX,{})||{};
   ricostruisciIndice();
   completaIndice();
@@ -311,7 +318,10 @@ function chiediMemoriaStabile(){
     if(S.vista==="impostazioni") render();
   }).catch(function(){});
 }
-function salvaCfg(){ scrivi(K_CFG,{pesiPrec:S.pesiPrec,riposo:S.riposo,schermo:S.schermo,schedaV:S.schedaV,drive:S.drive}); }
+function salvaCfg(){
+  var c={pesiPrec:S.pesiPrec,riposo:S.riposo,schermo:S.schermo,schedaV:S.schedaV,drive:S.drive};
+  scrivi(K_CFG,c); scrivi(K_CFG2,c);
+}
 
 /* Rinumera le sedute salvate dopo un riordino della scheda. Gira una volta
    sola per versione e il numero resta in `palestra.config` come `schedaV`.

@@ -170,6 +170,12 @@ di `palestra.indice`, di là si rompe qualcosa: vai a guardare.
 
 ## Che i dati non spariscano
 
+Le impostazioni si scrivono in **due copie** (`palestra.config` e
+`palestra.config.bis`, dal 2026-09-02): se la prima è illeggibile si prende la
+seconda e si riscrive la prima. L'indice si ricostruisce dalle sedute, questo
+no. Nel Diario quel giorno Manlio ha perso proprio le impostazioni — gli
+alimenti che si era salvato — mentre i giorni li aveva ripresi da Drive.
+
 `ricostruisciIndice()` rimette in piedi l'elenco delle sedute leggendo i
 `palestra.s.<data>`. Gira a ogni avvio e **aggiunge soltanto**. Nel Diario, il
 2026-09-02, l'elenco dei giorni si è svuotato mentre le sedute di qui — stessa
