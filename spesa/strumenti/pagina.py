@@ -297,17 +297,32 @@ const DATI = __DATI__;
    invece della memoria sul server. */
 const LISTA_PUBBLICATA = __LISTA__;
 const TEMPLATE = __TEMPLATE__;
+
+/* Vero solo nella copia pubblicata su Claude, dove la lista e davvero
+   condivisa e comanda quella dentro la pagina. Sul sito e falso: li dentro non
+   c'e niente che possa aggiornare la lista incorporata, quindi comanda quella
+   che l'utente si e fatto nel suo browser, altrimenti le sue modifiche
+   sparirebbero a ogni ricaricamento. */
+const CONDIVISA = __CONDIVISA__;
 const CHIAVE = 'spesa.lista.v1';
 
 /* Rimette insieme il documento intero con dentro una lista nuova. L'ordine
    conta: prima la lista, poi il template. Al contrario, il template appena
    infilato porterebbe dentro un altro __LISTA__ e verrebbe riempito quello
-   sbagliato. Il <\/ serve perche un </script> dentro una stringa chiuderebbe
-   lo script per davvero. */
+   sbagliato. Le barre si spezzano in <\/ perche il tag di chiusura dello
+   script, scritto per esteso dentro una stringa, chiuderebbe lo script per
+   davvero: il browser lo cerca nel testo, non gli importa che sia in una
+   stringa o in un commento. */
 function documento(nuova) {
   const l = JSON.stringify(nuova).split('</').join('<\\/');
   const t = JSON.stringify(TEMPLATE).split('</').join('<\\/');
-  return TEMPLATE.replace('__LISTA__', () => l).replace('__TEMPLATE__', () => t);
+  /* Il modello va SEMPRE per ultimo: appena infilato porta dentro una copia di
+     tutti gli altri segnaposto, e da quel momento replace() troverebbe quelli
+     invece dei veri. Chi si ripubblica e sempre la copia condivisa. */
+  return TEMPLATE
+    .replace('__LISTA__', () => l)
+    .replace('__CONDIVISA__', () => 'true')
+    .replace('__TEMPLATE__', () => t);
 }
 
 const norm = s => (s || '').toLowerCase()
@@ -316,18 +331,19 @@ const norm = s => (s || '').toLowerCase()
    diventerebbero tutti «0,14 €» e non si distinguerebbero piu */
 const eur = n => (n < 1 ? n.toFixed(3) : n.toFixed(2)).replace('.', ',');
 
-/* Comanda sempre la lista pubblicata: e quella che vedono tutti. La memoria
-   del browser resta solo come ripiego per la copia che gira da sola come file,
-   dove non c'e niente da ripubblicare. */
+/* Dove la lista e condivisa comanda quella dentro la pagina: e quella che
+   vedono tutti, e viene aggiornata ripubblicando. Dove non lo e (il sito, il
+   file) comanda quella che l'utente si e fatto: nessuno aggiornera mai quella
+   incorporata, che li vale solo come punto di partenza. */
 function leggiLista() {
-  if (Array.isArray(LISTA_PUBBLICATA) && LISTA_PUBBLICATA.length) {
-    return LISTA_PUBBLICATA.map(riaggancia);
-  }
+  const dentro = Array.isArray(LISTA_PUBBLICATA) && LISTA_PUBBLICATA.length
+    ? LISTA_PUBBLICATA.map(riaggancia) : null;
+  if (CONDIVISA && dentro) return dentro;
   try {
     const g = localStorage.getItem(CHIAVE);
     if (g) { const v = JSON.parse(g); if (Array.isArray(v) && v.length) return v.map(riaggancia); }
-  } catch (e) { /* memoria non disponibile: si riparte dai predefiniti */ }
-  return DATI.partenza.map(p => ({ ...p }));
+  } catch (e) { /* memoria non disponibile: si riparte da quella incorporata */ }
+  return dentro || DATI.partenza.map(p => ({ ...p }));
 }
 
 /* Una lista salvata da una versione vecchia della pagina puo avere prodotti
@@ -720,15 +736,21 @@ def riempi(modello):
     due costanti sono dichiarate sopra la funzione; in JavaScript replace() con
     una stringa si ferma alla prima da solo, quindi le due parti si comportano
     allo stesso modo."""
+    # il modello per ultimo: vedi documento() nello script, stessa trappola
     return (modello
             .replace('__LISTA__', LISTA0, 1)
+            .replace('__CONDIVISA__', 'true', 1)
             .replace('__TEMPLATE__', racchiudi(COMPLETO), 1))
 
 open('out/pagina.html', 'w', encoding='utf-8').write(riempi(CORPO))
 
 # Copia che si apre a doppio clic, senza account e senza rete. Non puo
-# ripubblicare (non c'e nessun window.claude): li la lista resta sua.
-open('out/spesa-da-sola.html', 'w', encoding='utf-8').write(riempi(COMPLETO))
+# ripubblicare (non c'e nessun window.claude), quindi niente modello e niente
+# lista condivisa: li la lista e di chi apre e resta nel suo browser.
+open('out/spesa-da-sola.html', 'w', encoding='utf-8').write(
+    COMPLETO.replace('__LISTA__', LISTA0, 1)
+            .replace('__TEMPLATE__', '""', 1)
+            .replace('__CONDIVISA__', 'false', 1))
 
 # ---------------------------------------------------------------------------
 # La versione per il sito vero (GitHub Pages). Li dentro non esiste
@@ -755,9 +777,49 @@ sito = (COMPLETO
                  '<meta name="viewport" content="width=device-width, initial-scale=1">\n' + TESTA_SITO, 1)
         .replace('\n</body>\n</html>\n', '\n' + CODA_SITO + '</body>\n</html>\n', 1)
         .replace('__LISTA__', LISTA0, 1)
-        .replace('__TEMPLATE__', '""', 1))
+        .replace('__TEMPLATE__', '""', 1)
+        .replace('__CONDIVISA__', 'false', 1))
 open('out/sito.html', 'w', encoding='utf-8').write(sito)
 print('sito:', len(sito) // 1024, 'KB (senza la copia di se stessa)')
+
+
+# ---------------------------------------------------------------------------
+# CONTROLLO OBBLIGATORIO, non un lusso.
+#
+# Il 2026-09-03 un commento conteneva il tag di chiusura dello script scritto
+# per esteso. Il browser lo cerca nel testo e non gli importa che sia dentro un
+# commento: ha chiuso lo script a meta e tutte e tre le pagine sono uscite
+# morte, quella gia in mano a Manlio compresa. Da fuori sembravano a posto —
+# intestazione, riquadri, tutto — solo senza prodotti.
+#
+# Qui si spezza ogni file dove il browser lo spezzerebbe e si controlla che
+# ogni pezzo sia JavaScript valido e che quello grosso contenga davvero la
+# funzione che disegna la pagina. Se non torna, il file NON si consegna.
+# ---------------------------------------------------------------------------
+def controlla(percorso):
+    import re, subprocess, tempfile
+    testo = open(percorso, encoding='utf-8').read()
+    pezzi = re.findall(r'<script>(.*?)</script>', testo, re.S)
+    if not pezzi:
+        raise SystemExit(f'{percorso}: nessuno script trovato')
+    for n, pezzo in enumerate(pezzi):
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False, encoding='utf-8') as t:
+            t.write(pezzo); tmp = t.name
+        esito = subprocess.run(['node', '--check', tmp], capture_output=True, text=True)
+        os.unlink(tmp)
+        if esito.returncode != 0:
+            riga = esito.stderr.strip().split(chr(10))
+            raise SystemExit(f'{percorso}: il pezzo {n} non e JavaScript valido\n  '
+                             + chr(10).join('  ' + r for r in riga[:4]))
+    if 'function disegna' not in pezzi[0]:
+        raise SystemExit(f'{percorso}: lo script principale e stato tagliato prima di '
+                         'disegna(). Quasi certamente c\'e un tag di chiusura scritto '
+                         'per esteso in un commento o in una stringa.')
+    print(f'  {os.path.basename(percorso):24s} {len(pezzi)} script, tutti validi')
+
+print('controllo che le pagine non siano spezzate:')
+for f in ('out/pagina.html', 'out/sito.html', 'out/spesa-da-sola.html'):
+    controlla(f)
 
 print('scritta —', len(riempi(CORPO)) // 1024, 'KB;', len(partenza), 'prodotti in lista,',
       len(offerte), 'prezzi,', len(pagine), 'pagine indicizzate')

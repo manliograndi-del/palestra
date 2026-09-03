@@ -62,6 +62,29 @@ sull'artifact. Se dicono che le liste non combaciano, è questo, non un baco.
 | `out/pagina.html` | l'artifact | 445 KB, con la copia di sé per la lista condivisa |
 | `out/spesa-da-sola.html` | da mandare per posta | come il sito ma tutto in un file |
 
+### MAI scrivere il tag di chiusura dello script per esteso
+
+Il guaio peggiore di tutta la sessione, il 2026-09-03. In un **commento** dentro
+lo script c'era il tag di chiusura scritto per esteso. Il browser lo cerca nel
+testo e non gli importa che sia dentro un commento: ha chiuso lo script a metà.
+**Tutte e tre le pagine sono uscite morte** — quella sul sito, quella di Claude
+e il file — e quella di Claude era già in mano a Manlio.
+
+Da fuori sembravano perfette: intestazione, riquadri, testi, tutto al posto
+giusto. Mancavano solo i bottoni dei prodotti e i prezzi, perché il pezzo di
+programma che li disegna stava dopo il taglio. È esattamente il tipo di guasto
+che non si vede rileggendo il codice: l'ha visto Manlio aprendo il sito.
+
+`pagina.py` adesso **non consegna un file senza averlo controllato**: spezza
+ogni pagina dove la spezzerebbe il browser, passa ogni pezzo a `node --check` e
+verifica che quello grosso contenga `function disegna`. Se non torna, si ferma
+con un errore invece di scrivere il file. Provato rimettendo il guasto apposta:
+lo prende.
+
+Se devi nominare quel tag in un commento, scrivilo spezzato o giragli intorno a
+parole. Vale anche per le stringhe: `racchiudi()` in Python e `documento()` in
+JavaScript spezzano ogni `</` in `<\/` proprio per questo.
+
 ### Il service worker della Spesa è obbligatorio
 
 `spesa/sw.js` non è un lusso. Quello della Palestra sta alla radice, il suo
