@@ -35,7 +35,45 @@ fogli — guida, 24 prodotti suoi col prezzo al chilo, indice cercabile di tutte
 le pagine — e **una pagina web pubblicata**, che è quello che ha chiesto per
 ultimo: voleva un indirizzo da mandare **anche a sua moglie, da un altro posto**.
 
-    https://claude.ai/code/artifact/a6782ea0-6822-4026-87e7-705012966595
+## L'indirizzo che conta è il sito, non l'artifact
+
+Il 2026-09-03 Manlio ha detto: «questa pagina non deve essere un artefatto tuo,
+voglio l'indirizzo internet della pagina». Ha ragione, e c'era già il posto
+giusto: il sito della Palestra su GitHub Pages. La Spesa sta in una cartella
+accanto.
+
+    https://manliograndi-del.github.io/palestra/spesa/     ← QUESTO
+    https://claude.ai/code/artifact/a6782ea0-6822-4026-87e7-705012966595  (secondario)
+
+Il sito lo pubblica il ramo **`main`**, cartella `spesa/`: per mandare in linea
+una modifica bisogna portarla lì, non basta il ramo di lavoro. **Toccare solo
+dentro `spesa/`**: `index.html`, `sw.js` e il resto dell'app della palestra
+stanno alla radice e non si toccano mai.
+
+**La rinuncia, scelta da lui sapendola:** sul sito non c'è nessun server, quindi
+la lista torna a essere una per telefono. La lista condivisa vive solo
+sull'artifact. Se dicono che le liste non combaciano, è questo, non un baco.
+
+`pagina.py` sforna tre versioni dalla stessa fonte:
+
+| file | dove va | differenza |
+|---|---|---|
+| `out/sito.html` | `spesa/index.html`, il sito | 219 KB, niente copia di sé (lì non potrà mai ripubblicarsi), ha manifest e service worker |
+| `out/pagina.html` | l'artifact | 445 KB, con la copia di sé per la lista condivisa |
+| `out/spesa-da-sola.html` | da mandare per posta | come il sito ma tutto in un file |
+
+### Il service worker della Spesa è obbligatorio
+
+`spesa/sw.js` non è un lusso. Quello della Palestra sta alla radice, il suo
+scope copre anche `/palestra/spesa/`, e **senza rete servirebbe l'index.html
+della Palestra al posto della Spesa** (guarda il suo `catch`: ricade su
+`./index.html`). Uno registrato più in basso vince sul suo scope, quindi questo
+toglie di mezzo il problema — e in più tiene la Spesa disponibile in negozio,
+dove il segnale è pessimo. Se lo modifichi, **alza il numero di cache**
+(`spesa-v1`), come per la Palestra.
+
+Le icone sono un carrello rosso su fondo bianco, di proposito diverse da quelle
+della Palestra che sono rosse piene: sulla schermata Home non si confondono.
 
 **La pagina si chiama «Spesa»**, chiesto il 2026-09-03: è il `<title>`, cioè il
 nome che si legge sotto l'icona quando la si installa sulla schermata Home del
