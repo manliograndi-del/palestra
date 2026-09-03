@@ -148,6 +148,23 @@ prodotto aggiunto da lui che non corrisponde a niente resta senza, ed è giusto.
 **Non togliere `riaggancia()`**: ogni volta che si aggiungono categorie nuove a
 `dati.py` serve di nuovo, o chi ha la pagina in uso non le vede mai.
 
+### «Ma io li ho cambiati nella pagina, perché devo ridirteli?»
+
+Domanda di Manlio, ed è giusta. La risposta è che la lista sta in `localStorage`
+sul suo telefono e **non torna indietro a chi ha fatto la pagina**: non esiste un
+canale. L'unico modo per vederla davvero sarebbe la capacità `db`, che però
+chiude la pagina dentro l'organizzazione e taglia fuori la moglie — vedi sopra.
+
+Il rimedio è il riquadro **«Mandami la tua lista»** in fondo alla pagina: un
+bottone impacchetta la lista in testo (nome più i nomi alternativi) e la copia,
+lui la incolla in chat. È l'unico ponte che c'è, quindi **non toglierlo**: senza,
+ogni volta bisogna chiedergli di riscrivere a mano quello che ha già scritto,
+e infatti la seconda volta si è spazientito.
+
+La `textarea` sotto il bottone **non è un di più**: negli artifact la scrittura
+negli appunti può essere negata in silenzio, e in quel caso il testo deve
+restare lì da selezionare a mano. Il `catch` scrive cosa fare.
+
 ### L'aggiornamento delle offerte
 
 Manlio ha chiesto che **anche la moglie possa aggiornare le offerte dal suo

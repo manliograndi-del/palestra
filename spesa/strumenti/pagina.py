@@ -166,6 +166,18 @@ h1 span{display:block;color:var(--rosso);font-size:12px;letter-spacing:.16em;mar
   border-radius:10px;padding:14px}
 
 /* ---- coda ---- */
+.manda{margin-top:30px;border:2px solid var(--inchiostro);border-radius:12px;padding:16px}
+.manda h2{font-family:var(--f-prezzo);text-transform:uppercase;font-size:15px;
+  letter-spacing:.04em;margin:0 0 8px}
+.manda p{font-size:14px;margin:0 0 12px;color:var(--tenue)}
+.manda button{background:var(--inchiostro);color:var(--carta);border:0;border-radius:10px;
+  padding:13px 18px;font-size:15px;font-weight:600;cursor:pointer;min-height:48px;width:100%}
+.manda textarea{display:none;width:100%;margin-top:12px;min-height:150px;resize:vertical;
+  font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;line-height:1.5;
+  background:var(--pannello);color:var(--inchiostro);border:1.5px solid var(--linea);
+  border-radius:10px;padding:11px}
+.manda textarea.on{display:block}
+.manda .esito{font-size:13.5px;margin:10px 0 0;color:var(--verde);font-weight:600;min-height:1.2em}
 .spiega{margin-top:34px;background:var(--pannello);border-radius:12px;padding:16px 16px 4px}
 .spiega h2{font-family:var(--f-prezzo);text-transform:uppercase;font-size:15px;
   letter-spacing:.04em;margin:0 0 10px}
@@ -200,6 +212,16 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--linea);
 </div>
 
 <div id="risultato"></div>
+
+<section class="manda">
+  <h2>Mandami la tua lista</h2>
+  <p>Quello che cambi qui resta su questo telefono e non arriva a me. Se vuoi che vada a
+  leggere i prezzi anche per le voci che hai messo tu, tocca il bottone e incolla nella
+  chat: c'è già tutto, nomi alternativi compresi.</p>
+  <button type="button" id="btn-copia">Copia la mia lista</button>
+  <p class="esito" id="esito" role="status"></p>
+  <textarea id="testo-lista" readonly aria-label="La tua lista, da copiare"></textarea>
+</section>
 
 <section class="spiega">
   <h2>Come leggerla</h2>
@@ -510,6 +532,37 @@ document.getElementById('form-agg').onsubmit = ev => {
   c.value = '';
   document.getElementById('form-agg').classList.remove('on');
   salva(); disegna();
+};
+
+/* La lista vive solo qui dentro (localStorage) e non torna indietro a chi ha fatto
+   la pagina. Questo bottone la impacchetta in testo da incollare in chat. La
+   textarea non e un ripiego per il telefono: negli artifact la scrittura negli
+   appunti puo essere negata senza dire niente, e allora il testo dev'essere li
+   pronto da selezionare a mano. */
+function listaInTesto() {
+  const righe = lista.map(v => {
+    const altri = nomiDi(v).slice(1);
+    return '- ' + v.nome + (altri.length ? '  (anche: ' + altri.join(', ') + ')' : '');
+  });
+  return 'LA MIA LISTA DELLA SPESA — ' + lista.length +
+         (lista.length === 1 ? ' prodotto' : ' prodotti') + '\n' + righe.join('\n');
+}
+
+const btnCopia = document.getElementById('btn-copia');
+const areaLista = document.getElementById('testo-lista');
+const esito = document.getElementById('esito');
+btnCopia.onclick = async () => {
+  const testo = listaInTesto();
+  areaLista.value = testo;
+  areaLista.classList.add('on');
+  try {
+    await navigator.clipboard.writeText(testo);
+    esito.textContent = 'Copiata. Adesso incollala nella chat.';
+  } catch (e) {
+    esito.textContent = 'Non sono riuscito a copiarla da solo: tienila premuta qui sotto, «Seleziona tutto», copia.';
+    areaLista.focus();
+    areaLista.select();
+  }
 };
 
 document.getElementById('letto').textContent = 'letti il ' + DATI.letto;
