@@ -54,6 +54,27 @@ stanno alla radice e non si toccano mai.
 la lista torna a essere una per telefono. La lista condivisa vive solo
 sull'artifact. Se dicono che le liste non combaciano, è questo, non un baco.
 
+### `CONDIVISA`: chi comanda, la pagina o il browser
+
+Ogni copia porta una costante `CONDIVISA`. Dove è **vera** (solo l'artifact)
+comanda la lista incorporata nella pagina: è quella che vedono tutti e viene
+aggiornata ripubblicando. Dove è **falsa** (sito e file) comanda quella salvata
+nel browser di chi apre, e la incorporata vale solo come punto di partenza.
+
+Senza questa distinzione **sul sito le modifiche sparivano a ogni
+ricaricamento**: la lista incorporata non è vuota, quindi vinceva sempre lei,
+e lì non c'è niente che possa aggiornarla. Trovato rileggendo, prima che se ne
+accorgesse Manlio.
+
+**L'ordine delle sostituzioni è delicato.** Sia `riempi()` in Python sia
+`documento()` in JavaScript devono riempire `__TEMPLATE__` **per ultimo**:
+appena infilato, il modello porta dentro una copia di tutti gli altri
+segnaposto, e da quel momento la sostituzione dopo trova quelli invece dei
+veri. Successo davvero con `__CONDIVISA__`: veniva riempito dentro la copia e
+la pagina rigenerata restava con un `__CONDIVISA__` scoperto, cioè rotta. Il
+controllo in Node che rigenera tre volte e guarda cosa esce è l'unico modo per
+accorgersene senza mandarla in mano a loro.
+
 `pagina.py` sforna tre versioni dalla stessa fonte:
 
 | file | dove va | differenza |

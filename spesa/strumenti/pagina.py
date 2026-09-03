@@ -297,6 +297,13 @@ const DATI = __DATI__;
    invece della memoria sul server. */
 const LISTA_PUBBLICATA = __LISTA__;
 const TEMPLATE = __TEMPLATE__;
+
+/* Vero solo nella copia pubblicata su Claude, dove la lista e davvero
+   condivisa e comanda quella dentro la pagina. Sul sito e falso: li dentro non
+   c'e niente che possa aggiornare la lista incorporata, quindi comanda quella
+   che l'utente si e fatto nel suo browser, altrimenti le sue modifiche
+   sparirebbero a ogni ricaricamento. */
+const CONDIVISA = __CONDIVISA__;
 const CHIAVE = 'spesa.lista.v1';
 
 /* Rimette insieme il documento intero con dentro una lista nuova. L'ordine
@@ -307,7 +314,13 @@ const CHIAVE = 'spesa.lista.v1';
 function documento(nuova) {
   const l = JSON.stringify(nuova).split('</').join('<\\/');
   const t = JSON.stringify(TEMPLATE).split('</').join('<\\/');
-  return TEMPLATE.replace('__LISTA__', () => l).replace('__TEMPLATE__', () => t);
+  /* Il modello va SEMPRE per ultimo: appena infilato porta dentro una copia di
+     tutti gli altri segnaposto, e da quel momento replace() troverebbe quelli
+     invece dei veri. Chi si ripubblica e sempre la copia condivisa. */
+  return TEMPLATE
+    .replace('__LISTA__', () => l)
+    .replace('__CONDIVISA__', () => 'true')
+    .replace('__TEMPLATE__', () => t);
 }
 
 const norm = s => (s || '').toLowerCase()
@@ -316,18 +329,19 @@ const norm = s => (s || '').toLowerCase()
    diventerebbero tutti «0,14 €» e non si distinguerebbero piu */
 const eur = n => (n < 1 ? n.toFixed(3) : n.toFixed(2)).replace('.', ',');
 
-/* Comanda sempre la lista pubblicata: e quella che vedono tutti. La memoria
-   del browser resta solo come ripiego per la copia che gira da sola come file,
-   dove non c'e niente da ripubblicare. */
+/* Dove la lista e condivisa comanda quella dentro la pagina: e quella che
+   vedono tutti, e viene aggiornata ripubblicando. Dove non lo e (il sito, il
+   file) comanda quella che l'utente si e fatto: nessuno aggiornera mai quella
+   incorporata, che li vale solo come punto di partenza. */
 function leggiLista() {
-  if (Array.isArray(LISTA_PUBBLICATA) && LISTA_PUBBLICATA.length) {
-    return LISTA_PUBBLICATA.map(riaggancia);
-  }
+  const dentro = Array.isArray(LISTA_PUBBLICATA) && LISTA_PUBBLICATA.length
+    ? LISTA_PUBBLICATA.map(riaggancia) : null;
+  if (CONDIVISA && dentro) return dentro;
   try {
     const g = localStorage.getItem(CHIAVE);
     if (g) { const v = JSON.parse(g); if (Array.isArray(v) && v.length) return v.map(riaggancia); }
-  } catch (e) { /* memoria non disponibile: si riparte dai predefiniti */ }
-  return DATI.partenza.map(p => ({ ...p }));
+  } catch (e) { /* memoria non disponibile: si riparte da quella incorporata */ }
+  return dentro || DATI.partenza.map(p => ({ ...p }));
 }
 
 /* Una lista salvata da una versione vecchia della pagina puo avere prodotti
@@ -720,15 +734,21 @@ def riempi(modello):
     due costanti sono dichiarate sopra la funzione; in JavaScript replace() con
     una stringa si ferma alla prima da solo, quindi le due parti si comportano
     allo stesso modo."""
+    # il modello per ultimo: vedi documento() nello script, stessa trappola
     return (modello
             .replace('__LISTA__', LISTA0, 1)
+            .replace('__CONDIVISA__', 'true', 1)
             .replace('__TEMPLATE__', racchiudi(COMPLETO), 1))
 
 open('out/pagina.html', 'w', encoding='utf-8').write(riempi(CORPO))
 
 # Copia che si apre a doppio clic, senza account e senza rete. Non puo
-# ripubblicare (non c'e nessun window.claude): li la lista resta sua.
-open('out/spesa-da-sola.html', 'w', encoding='utf-8').write(riempi(COMPLETO))
+# ripubblicare (non c'e nessun window.claude), quindi niente modello e niente
+# lista condivisa: li la lista e di chi apre e resta nel suo browser.
+open('out/spesa-da-sola.html', 'w', encoding='utf-8').write(
+    COMPLETO.replace('__LISTA__', LISTA0, 1)
+            .replace('__TEMPLATE__', '""', 1)
+            .replace('__CONDIVISA__', 'false', 1))
 
 # ---------------------------------------------------------------------------
 # La versione per il sito vero (GitHub Pages). Li dentro non esiste
@@ -755,7 +775,8 @@ sito = (COMPLETO
                  '<meta name="viewport" content="width=device-width, initial-scale=1">\n' + TESTA_SITO, 1)
         .replace('\n</body>\n</html>\n', '\n' + CODA_SITO + '</body>\n</html>\n', 1)
         .replace('__LISTA__', LISTA0, 1)
-        .replace('__TEMPLATE__', '""', 1))
+        .replace('__TEMPLATE__', '""', 1)
+        .replace('__CONDIVISA__', 'false', 1))
 open('out/sito.html', 'w', encoding='utf-8').write(sito)
 print('sito:', len(sito) // 1024, 'KB (senza la copia di se stessa)')
 
