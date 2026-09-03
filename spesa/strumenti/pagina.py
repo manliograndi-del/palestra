@@ -367,7 +367,7 @@ function stato(testo, brutto) {
    una volta sola. */
 function salva() {
   salvaLocale();
-  if (!ART || soloMio) return;
+  if (!ART || soloMio || !TEMPLATE) return;
   stato('Sto salvando per tutti…');
   clearTimeout(attesa);
   attesa = setTimeout(async () => {
@@ -729,6 +729,35 @@ open('out/pagina.html', 'w', encoding='utf-8').write(riempi(CORPO))
 # Copia che si apre a doppio clic, senza account e senza rete. Non puo
 # ripubblicare (non c'e nessun window.claude): li la lista resta sua.
 open('out/spesa-da-sola.html', 'w', encoding='utf-8').write(riempi(COMPLETO))
+
+# ---------------------------------------------------------------------------
+# La versione per il sito vero (GitHub Pages). Li dentro non esiste
+# window.claude, quindi la pagina non potra mai ripubblicarsi: il modello e
+# peso morto e lo si toglie (230 KB in meno). Ha invece il manifest e il suo
+# service worker, per potersi installare sul telefono e funzionare in negozio
+# senza segnale.
+# ---------------------------------------------------------------------------
+TESTA_SITO = ('<link rel="manifest" href="./manifest.webmanifest">\n'
+              '<meta name="theme-color" content="#FFFFFF">\n'
+              '<meta name="apple-mobile-web-app-title" content="Spesa">\n')
+CODA_SITO = '''<script>
+/* Un service worker suo, in questa cartella. Serve a due cose: tenere la
+   pagina disponibile senza rete (in negozio il segnale e pessimo) e togliere
+   di mezzo quello della Palestra, che ha lo scope sopra e senza rete
+   servirebbe l'app della palestra al posto di questa. */
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}
+</script>
+'''
+sito = (COMPLETO
+        .replace('<meta name="viewport" content="width=device-width, initial-scale=1">\n',
+                 '<meta name="viewport" content="width=device-width, initial-scale=1">\n' + TESTA_SITO, 1)
+        .replace('\n</body>\n</html>\n', '\n' + CODA_SITO + '</body>\n</html>\n', 1)
+        .replace('__LISTA__', LISTA0, 1)
+        .replace('__TEMPLATE__', '""', 1))
+open('out/sito.html', 'w', encoding='utf-8').write(sito)
+print('sito:', len(sito) // 1024, 'KB (senza la copia di se stessa)')
 
 print('scritta —', len(riempi(CORPO)) // 1024, 'KB;', len(partenza), 'prodotti in lista,',
       len(offerte), 'prezzi,', len(pagine), 'pagine indicizzate')
