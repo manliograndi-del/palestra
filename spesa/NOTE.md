@@ -116,6 +116,38 @@ e il caffè in capsule sta col macinato (al chilo costa cinque volte tanto). E l
 carta igienica Regina è «4 rotoloni pari a 12 rotoli»: il conto usa i 12
 dichiarati sul pacco, e la nota dice quanto fa sui 4 veri.
 
+### Più nomi per lo stesso prodotto
+
+Chiesto da Manlio il 2026-09-02: «ci sono delle cose che possono essere salvate
+con più di un nome». È il motivo per cui i dodici di partenza avevano già una
+lista di `parole` — il volantino scrive «bovino» dove lui dice carne di bue, e
+«lavatrice» dove dice detersivo. Fino a quel giorno però quel meccanismo era
+solo mio: nella pagina non si vedeva e non si poteva usare.
+
+Adesso nel campo si scrivono **più nomi separati da virgola** e `costruisci()`
+li spezza: il primo diventa l'etichetta del bottone, tutti insieme sono i
+termini di ricerca in OR. Gli altri nomi si vedono sotto il titolo come
+pastiglie, e «Cambia nome» riapre il campo con tutti quanti dentro, separati da
+virgola, così si correggono.
+
+Se **uno qualsiasi** dei nomi scritti combacia con un prodotto di partenza (col
+nome o con una delle sue parole), il prodotto si porta dietro anche la categoria
+dei prezzi e le parole di quel seme. Così chi scrive «bovino» o «caffe» a mano
+ritrova i prezzi invece delle sole pagine.
+
+### `riaggancia()`: le liste salvate prima
+
+Chi aveva già usato la pagina ha in `localStorage` una lista fatta quando solo
+carne, tonno e salmone avevano i prezzi: quei prodotti sono salvati con
+`cat: null` e, senza fare niente, resterebbero **senza prezzi per sempre** anche
+dopo che i prezzi sono arrivati. `riaggancia()` gira su ogni prodotto letto
+dalla memoria e, se non ha categoria, cerca un seme che combaci per nome o per
+parola e gliela attacca — senza toccare i nomi che l'utente si è scelto. Un
+prodotto aggiunto da lui che non corrisponde a niente resta senza, ed è giusto.
+
+**Non togliere `riaggancia()`**: ogni volta che si aggiungono categorie nuove a
+`dati.py` serve di nuovo, o chi ha la pagina in uso non le vede mai.
+
 ### L'aggiornamento delle offerte
 
 Manlio ha chiesto che **anche la moglie possa aggiornare le offerte dal suo

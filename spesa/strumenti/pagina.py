@@ -111,6 +111,10 @@ h1 span{display:block;color:var(--rosso);font-size:12px;letter-spacing:.16em;mar
 .capo h2{font-family:var(--f-prezzo);text-transform:uppercase;letter-spacing:.02em;
   font-size:22px;font-weight:600;margin:0}
 .capo .quanti{color:var(--tenue);font-size:13px;font-variant-numeric:tabular-nums}
+.sinonimi{margin:6px 0 0;font-size:13.5px;color:var(--tenue);display:flex;
+  flex-wrap:wrap;gap:6px;align-items:baseline}
+.sinonimi em{font-style:normal;background:var(--pannello);border:1px solid var(--linea);
+  border-radius:99px;padding:2px 9px;font-size:13px;color:var(--inchiostro)}
 .gestisci{display:flex;gap:9px;margin:12px 0 0;flex-wrap:wrap}
 .gestisci button{background:var(--carta);border:1.5px solid var(--linea-forte);border-radius:9px;
   padding:10px 16px;font-size:14.5px;font-weight:600;cursor:pointer;min-height:44px}
@@ -189,8 +193,8 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--linea);
 <div class="barra">
   <div class="tasti" id="tasti" role="group" aria-label="Scegli il prodotto"></div>
   <form class="form-agg" id="form-agg">
-    <input id="nuovo" type="text" placeholder="Che prodotto? pane, birra, yogurt…"
-           autocomplete="off" aria-label="Nome del prodotto da aggiungere">
+    <input id="nuovo" type="text" placeholder="Nome del prodotto, o più nomi separati da virgola"
+           autocomplete="off" aria-label="Nomi del prodotto da aggiungere, separati da virgola">
     <button type="submit">Aggiungi</button>
   </form>
 </div>
@@ -207,6 +211,13 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--linea);
   dei volantini compare la parola, e il prezzo lo leggi tu aprendo il PDF a quella pagina. Se
   però scrivi una parola che questa pagina già conosce — «caffe», «bovino», «uovo» — si
   riaggancia da sola ai prezzi giusti.</p>
+  <p><b>La stessa cosa si chiama in modi diversi</b>, e il volantino ne usa uno solo: quello che
+  tu chiami detersivo lì è scritto «lavatrice», la carne di bue è «bovino» o «scottona». Perciò
+  puoi mettere <b>più nomi separati da virgola</b> — per esempio
+  <i>yogurt, yogurth, vasetti</i> — e la pagina ti trova tutte le pagine dove compare
+  <b>almeno uno</b> di quei nomi. Il primo è quello che leggi sul bottone, gli altri lavorano
+  sotto e te li fa vedere sotto il titolo. Vale anche su «Cambia nome»: si apre già con tutti i
+  nomi che sta usando, e li correggi.</p>
   <p>Le righe segnate <span class="ev">da controllare</span> vengono da riassunti trovati
   online e possono essere sbagliate: di errori così ne ho già trovati tre.</p>
   <p>Certi prezzi valgono <b>solo con la tessera</b> — soci Coop, Lidl Plus, Bennet Club — e
@@ -247,9 +258,26 @@ const eur = n => (n < 1 ? n.toFixed(3) : n.toFixed(2)).replace('.', ',');
 function leggiLista() {
   try {
     const g = localStorage.getItem(CHIAVE);
-    if (g) { const v = JSON.parse(g); if (Array.isArray(v) && v.length) return v; }
+    if (g) { const v = JSON.parse(g); if (Array.isArray(v) && v.length) return v.map(riaggancia); }
   } catch (e) { /* memoria non disponibile: si riparte dai predefiniti */ }
   return DATI.partenza.map(p => ({ ...p }));
+}
+
+/* Una lista salvata da una versione vecchia della pagina puo avere prodotti
+   senza categoria — quando i prezzi letti a mano coprivano solo carne, tonno e
+   salmone. Qui si riattaccano ai prezzi che nel frattempo sono arrivati, senza
+   toccare i nomi che l'utente si e scelto. Chi ha aggiunto un prodotto suo che
+   non corrisponde a niente resta com'e. */
+function riaggancia(v) {
+  if (!v || !v.nome) return v;
+  if (v.cat) return v;
+  const nomi = [v.nome].concat(v.parole || []).map(norm);
+  const seme = DATI.partenza.find(x =>
+    nomi.includes(norm(x.nome)) || (x.parole || []).some(w => nomi.includes(norm(w))));
+  if (!seme) return v;
+  const parole = (v.parole || []).slice();
+  seme.parole.forEach(p => { if (!parole.some(x => norm(x) === norm(p))) parole.push(p); });
+  return { nome: v.nome, parole, cat: seme.cat };
 }
 function salva() {
   try { localStorage.setItem(CHIAVE, JSON.stringify(lista)); }
@@ -262,20 +290,34 @@ let tutteLePagine = false;
 
 const offerteDi = v => v.cat ? DATI.offerte.filter(o => o.cat === v.cat) : [];
 
-/* Se quello che scrive combacia con uno dei dodici di partenza (col nome o con
-   una delle sue parole), gli attacca la stessa categoria: cosi chi riscrive
-   «caffe» a mano ritrova i prezzi invece delle sole pagine. */
-function costruisci(testo) {
-  const t = norm(testo);
-  const p = DATI.partenza.find(x =>
-    norm(x.nome) === t || (x.parole || []).some(w => norm(w) === t));
-  return p ? { nome: testo, parole: p.parole, cat: p.cat }
-           : { nome: testo, parole: [testo], cat: null };
+/* tutti i nomi di un prodotto: quello sul bottone piu gli altri con cui cercarlo */
+function nomiDi(v) {
+  const out = [v.nome];
+  (v.parole || []).forEach(p => { if (norm(p) !== norm(v.nome)) out.push(p); });
+  return out;
 }
-const pagineDi = v => {
-  const t = (v.parole && v.parole.length ? v.parole : [v.nome]).map(norm);
-  return DATI.pagine.filter(p => { const s = norm(p.parole); return t.some(x => s.includes(x)); });
-};
+
+/* Un prodotto si puo chiamare in piu modi, e il volantino ne usa uno solo:
+   «detersivo» o «lavatrice», «carne di bue» o «bovino». Qui si scrivono tutti,
+   separati da virgola, e la pagina cerca le pagine dove compare ALMENO UNO.
+   Il primo nome e quello che si legge sul bottone, gli altri lavorano sotto.
+   Se uno dei nomi e gia noto (uno dei dodici di partenza, o una delle sue
+   parole), si porta dietro anche i prezzi letti a mano e le sue parole. */
+function costruisci(testo) {
+  const termini = testo.split(/[,;]+/).map(x => x.trim()).filter(Boolean);
+  if (!termini.length) return null;
+  let seme = null;
+  for (const t of termini) {
+    const n = norm(t);
+    seme = DATI.partenza.find(x => norm(x.nome) === n || (x.parole || []).some(w => norm(w) === n));
+    if (seme) break;
+  }
+  const parole = [];
+  for (const p of termini.concat(seme ? seme.parole : [])) {
+    if (!parole.some(x => norm(x) === norm(p))) parole.push(p);
+  }
+  return { nome: termini[0], parole, cat: seme ? seme.cat : null };
+}
 
 /* ---------- barra dei prodotti ---------- */
 function disegnaTasti() {
@@ -365,6 +407,20 @@ function disegna() {
     : `${pag.length} ${pag.length === 1 ? 'pagina lo nomina' : 'pagine lo nominano'}`;
   out.appendChild(capo);
 
+  const altri = nomiDi(v).slice(1);
+  if (altri.length) {
+    const p = document.createElement('p');
+    p.className = 'sinonimi';
+    p.innerHTML = '<span></span> ';
+    p.querySelector('span').textContent = 'cerca anche:';
+    altri.forEach(a => {
+      const c = document.createElement('em');
+      c.textContent = a;
+      p.appendChild(c);
+    });
+    out.appendChild(p);
+  }
+
   const g = document.createElement('div');
   g.className = 'gestisci';
   const bRin = document.createElement('button');
@@ -382,16 +438,22 @@ function disegna() {
 
   const fr = document.createElement('form');
   fr.className = 'form-rin';
-  fr.innerHTML = '<input type="text" aria-label="Nuovo nome del prodotto"><button type="submit">Salva</button>';
+  fr.innerHTML = '<input type="text" aria-label="Nomi del prodotto, separati da virgola"><button type="submit">Salva</button>';
   const inp = fr.querySelector('input');
   fr.onsubmit = ev => {
     ev.preventDefault();
     const t = inp.value.trim();
     if (!t) return;
-    lista[scelto] = costruisci(t);
+    const v2 = costruisci(t);
+    if (!v2) return;
+    lista[scelto] = v2;
     salva(); disegna();
   };
-  bRin.onclick = () => { fr.classList.add('on'); inp.value = v.nome; inp.focus(); inp.select(); };
+  bRin.onclick = () => {
+    fr.classList.add('on');
+    inp.value = nomiDi(v).join(', ');
+    inp.focus(); inp.select();
+  };
   out.appendChild(fr);
 
   if (off.length) {
@@ -440,7 +502,9 @@ document.getElementById('form-agg').onsubmit = ev => {
   const c = document.getElementById('nuovo');
   const t = c.value.trim();
   if (!t) return;
-  lista.push(costruisci(t));
+  const v2 = costruisci(t);
+  if (!v2) return;
+  lista.push(v2);
   scelto = lista.length - 1;
   tutteLePagine = false;
   c.value = '';
