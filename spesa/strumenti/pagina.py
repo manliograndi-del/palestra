@@ -406,27 +406,22 @@ function salva() {
   }, 1200);
 }
 
-/* La capacita arriva dopo, mai durante il primo giro di questo script: la
-   pagina deve funzionare gia prima, e accendersi quando arriva. */
-(async () => {
-  try {
-    ART = window.claude && claude.use ? await claude.use('artifact') : null;
-  } catch (e) { ART = null; }
-  if (ART) {
-    soloMio = false;
-    stato('Lista condivisa: quello che cambi lo vede anche chi ha il link.');
-  } else {
-    stato('Questa copia è solo tua: le modifiche restano su questo telefono.');
-  }
-  aggiornaRiquadroManda();
-  disegna();
-})();
 
 let lista = leggiLista();
 let scelto = 0;
 let tutteLePagine = false;
 
 const offerteDi = v => v.cat ? DATI.offerte.filter(o => o.cat === v.cat) : [];
+
+/* Le pagine dei volantini dove compare almeno uno dei nomi del prodotto.
+   Se non ha nomi alternativi si cerca il nome stesso. */
+const pagineDi = v => {
+  const termini = (v.parole && v.parole.length ? v.parole : [v.nome]).map(norm);
+  return DATI.pagine.filter(p => {
+    const dentro = norm(p.parole);
+    return termini.some(t => dentro.includes(t));
+  });
+};
 
 /* tutti i nomi di un prodotto: quello sul bottone piu gli altri con cui cercarlo */
 function nomiDi(v) {
@@ -697,6 +692,27 @@ function aggiornaRiquadroManda() {
 }
 
 disegna();
+
+/* Va in fondo, DOPO che «lista» e stata creata e la pagina disegnata una prima
+   volta. Messo prima, chiamava disegna() quando «lista» non esisteva ancora e
+   moriva li: i bottoni comparivano lo stesso (li disegnava la chiamata in
+   fondo) ma sotto non usciva niente. La capacita, dove c'e, arriva comunque
+   dopo il primo giro di questo script: la pagina deve funzionare gia prima e
+   accendersi quando arriva. */
+(async () => {
+  try {
+    ART = window.claude && claude.use ? await claude.use('artifact') : null;
+  } catch (e) { ART = null; }
+  if (ART) {
+    soloMio = false;
+    stato('Lista condivisa: quello che cambi lo vede anche chi ha il link.');
+    lista = leggiLista();
+  } else {
+    stato('Questa copia è solo tua: le modifiche restano su questo telefono.');
+  }
+  aggiornaRiquadroManda();
+  disegna();
+})();
 </script>'''
 
 # ---------------------------------------------------------------------------
