@@ -255,8 +255,10 @@ const CHIAVE = 'spesa.lista.v1';
 /* Rimette insieme il documento intero con dentro una lista nuova. L'ordine
    conta: prima la lista, poi il template. Al contrario, il template appena
    infilato porterebbe dentro un altro __LISTA__ e verrebbe riempito quello
-   sbagliato. Il <\/ serve perche un </script> dentro una stringa chiuderebbe
-   lo script per davvero. */
+   sbagliato. Le barre si spezzano in <\/ perche il tag di chiusura dello
+   script, scritto per esteso dentro una stringa, chiuderebbe lo script per
+   davvero: il browser lo cerca nel testo, non gli importa che sia in una
+   stringa o in un commento. */
 function documento(nuova) {
   const l = JSON.stringify(nuova).split('</').join('<\\/');
   const t = JSON.stringify(TEMPLATE).split('</').join('<\\/');

@@ -309,8 +309,10 @@ const CHIAVE = 'spesa.lista.v1';
 /* Rimette insieme il documento intero con dentro una lista nuova. L'ordine
    conta: prima la lista, poi il template. Al contrario, il template appena
    infilato porterebbe dentro un altro __LISTA__ e verrebbe riempito quello
-   sbagliato. Il <\/ serve perche un </script> dentro una stringa chiuderebbe
-   lo script per davvero. */
+   sbagliato. Le barre si spezzano in <\/ perche il tag di chiusura dello
+   script, scritto per esteso dentro una stringa, chiuderebbe lo script per
+   davvero: il browser lo cerca nel testo, non gli importa che sia in una
+   stringa o in un commento. */
 function documento(nuova) {
   const l = JSON.stringify(nuova).split('</').join('<\\/');
   const t = JSON.stringify(TEMPLATE).split('</').join('<\\/');
@@ -779,6 +781,45 @@ sito = (COMPLETO
         .replace('__CONDIVISA__', 'false', 1))
 open('out/sito.html', 'w', encoding='utf-8').write(sito)
 print('sito:', len(sito) // 1024, 'KB (senza la copia di se stessa)')
+
+
+# ---------------------------------------------------------------------------
+# CONTROLLO OBBLIGATORIO, non un lusso.
+#
+# Il 2026-09-03 un commento conteneva il tag di chiusura dello script scritto
+# per esteso. Il browser lo cerca nel testo e non gli importa che sia dentro un
+# commento: ha chiuso lo script a meta e tutte e tre le pagine sono uscite
+# morte, quella gia in mano a Manlio compresa. Da fuori sembravano a posto —
+# intestazione, riquadri, tutto — solo senza prodotti.
+#
+# Qui si spezza ogni file dove il browser lo spezzerebbe e si controlla che
+# ogni pezzo sia JavaScript valido e che quello grosso contenga davvero la
+# funzione che disegna la pagina. Se non torna, il file NON si consegna.
+# ---------------------------------------------------------------------------
+def controlla(percorso):
+    import re, subprocess, tempfile
+    testo = open(percorso, encoding='utf-8').read()
+    pezzi = re.findall(r'<script>(.*?)</script>', testo, re.S)
+    if not pezzi:
+        raise SystemExit(f'{percorso}: nessuno script trovato')
+    for n, pezzo in enumerate(pezzi):
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False, encoding='utf-8') as t:
+            t.write(pezzo); tmp = t.name
+        esito = subprocess.run(['node', '--check', tmp], capture_output=True, text=True)
+        os.unlink(tmp)
+        if esito.returncode != 0:
+            riga = esito.stderr.strip().split(chr(10))
+            raise SystemExit(f'{percorso}: il pezzo {n} non e JavaScript valido\n  '
+                             + chr(10).join('  ' + r for r in riga[:4]))
+    if 'function disegna' not in pezzi[0]:
+        raise SystemExit(f'{percorso}: lo script principale e stato tagliato prima di '
+                         'disegna(). Quasi certamente c\'e un tag di chiusura scritto '
+                         'per esteso in un commento o in una stringa.')
+    print(f'  {os.path.basename(percorso):24s} {len(pezzi)} script, tutti validi')
+
+print('controllo che le pagine non siano spezzate:')
+for f in ('out/pagina.html', 'out/sito.html', 'out/spesa-da-sola.html'):
+    controlla(f)
 
 print('scritta —', len(riempi(CORPO)) // 1024, 'KB;', len(partenza), 'prodotti in lista,',
       len(offerte), 'prezzi,', len(pagine), 'pagine indicizzate')
