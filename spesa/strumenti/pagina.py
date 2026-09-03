@@ -62,7 +62,7 @@ DATI = json.dumps(dict(offerte=offerte, pagine=pagine, volantini=volantini,
                   ensure_ascii=False, separators=(',', ':'))
 LISTA0 = json.dumps(partenza, ensure_ascii=False, separators=(',', ':'))
 
-HTML = r'''<title>Offerte di Corso Siracusa</title>
+HTML = r'''<title>Spesa</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Asap:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap">
 <style>
 /* Tema chiaro unico e dichiarato: nessun blocco scuro, perché la pagina

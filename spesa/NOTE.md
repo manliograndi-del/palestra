@@ -37,6 +37,11 @@ ultimo: voleva un indirizzo da mandare **anche a sua moglie, da un altro posto**
 
     https://claude.ai/code/artifact/a6782ea0-6822-4026-87e7-705012966595
 
+**La pagina si chiama «Spesa»**, chiesto il 2026-09-03: è il `<title>`, cioè il
+nome che si legge sotto l'icona quando la si installa sulla schermata Home del
+telefono. Non cambiarlo per farlo più descrittivo — è il nome dell'app per
+loro. L'icona è il carrello 🛒 e resta quella: si ritrova per l'icona.
+
 **Le pagine pubblicate nascono private**: perché la moglie la apra, lui deve
 condividerla dal menu della pagina stessa. Gliel'ho detto; se dice che lei non
 la vede, è quasi sicuramente quello.
