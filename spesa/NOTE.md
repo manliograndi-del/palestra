@@ -106,6 +106,42 @@ Se devi nominare quel tag in un commento, scrivilo spezzato o giragli intorno a
 parole. Vale anche per le stringhe: `racchiudi()` in Python e `documento()` in
 JavaScript spezzano ogni `</` in `<\/` proprio per questo.
 
+### `prova.js`: aprire la pagina per davvero, sempre
+
+Il 2026-09-03 la pagina è uscita rotta **tre volte di fila**, e ogni volta
+sembrava a posto da fuori:
+
+1. un commento conteneva il tag di chiusura dello script scritto per esteso →
+   script tagliato a metà, niente bottoni;
+2. il blocco che accende la lista condivisa stava **prima** di
+   `let lista = leggiLista()` → chiamava `disegna()` quando `lista` non esisteva
+   ancora e moriva lì;
+3. una mia sostituzione di testo aveva **cancellato `pagineDi`**: avevo
+   rimpiazzato un pezzo di sorgente delimitandolo da due commenti, e quella
+   funzione stava in mezzo. I bottoni comparivano, cliccandoli non usciva
+   niente.
+
+Nessuno dei tre si vedeva rileggendo il codice, e il controllo di sintassi ne
+prendeva solo il primo. Li ha visti Manlio, aprendo il sito. Tre volte.
+
+`strumenti/prova.js` apre la pagina in un browser finto (jsdom), **clicca ogni
+bottone** e pretende che escano prezzi o pagine. Va lanciato su tutte e tre le
+copie **prima di pubblicare**, sempre:
+
+    cd /tmp/dom && npm install jsdom
+    node prova.js .../out/sito.html
+    node prova.js .../out/pagina.html
+    node prova.js .../out/spesa-da-sola.html
+
+Esce con errore se qualcosa non va. Il controllo dentro `pagina.py` (node
+--check) resta, ma da solo non basta: una pagina può essere sintatticamente
+perfetta e muta.
+
+**Attenzione alle sostituzioni di testo su `pagina.py`**: delimitare un pezzo
+da rimpiazzare con due commenti lontani cancella tutto quello che ci sta in
+mezzo. È successo. Meglio sostituzioni corte e mirate, e comunque `prova.js`
+dopo.
+
 ### Il service worker della Spesa è obbligatorio
 
 `spesa/sw.js` non è un lusso. Quello della Palestra sta alla radice, il suo
