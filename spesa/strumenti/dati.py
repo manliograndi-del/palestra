@@ -32,17 +32,23 @@ UNITA = {
  'Uova':           ("all'uovo",     'uova'),
  'Carta igienica': ('al rotolo',    'rotoli'),
  'Detersivo':      ('a lavaggio',   'lavaggi'),
+ 'Suino':          ('al kg',        'kg'),
 }
 
+# chiave, insegna, periodo leggibile, nome del PDF, ULTIMO GIORNO DI VALIDITA
+# L'ultimo giorno serve a due cose: sapere quando andare a prendere il volantino
+# nuovo (il giorno prima), e buttare via il vecchio due giorni dopo, come ha
+# chiesto Manlio per non ritrovarsi una collezione. Se non e stampato sul
+# volantino si mette la stima e si scrive «stimato» nel periodo.
 VOLANTINI = [
- ('lidl',           'Lidl',           'dal 3 al 9 settembre (sottocosto fino al 12)', 'Lidl — 3-9 settembre.pdf'),
- ('eurospin',       'Eurospin',       'dal 24 agosto al 6 settembre',                 'Eurospin — 24 agosto-6 settembre.pdf'),
- ('md',             'MD',             'dal 25 agosto al 6 settembre',                 'MD — 25 agosto-6 settembre.pdf'),
- ('bennet',         'Bennet',         'dal 27 agosto al 9 settembre',                 'Bennet — 27 agosto-9 settembre.pdf'),
- ('ipercoop',       'Ipercoop',       'Sottocosto, dal 31 agosto al 9 settembre',     'Ipercoop Sottocosto — 31 agosto-9 settembre.pdf'),
- ('ipercoop_extra', 'Ipercoop',       'Extra offerte, dal 27 agosto al 9 settembre',  'Ipercoop Extra offerte — 27 agosto-9 settembre.pdf'),
- ('carriper20',     'Carrefour Iper', 'dal 20 agosto al 3 settembre',                 'Carrefour Iper — 20 agosto-3 settembre.pdf'),
- ('carriper04',     'Carrefour Iper', 'dal 4 settembre',                              'Carrefour Iper — dal 4 settembre.pdf'),
+ ('lidl',           'Lidl',           'dal 3 al 9 settembre (sottocosto fino al 12)', 'Lidl — 3-9 settembre.pdf',                       '2026-09-12'),
+ ('eurospin',       'Eurospin',       'dal 24 agosto al 6 settembre',                 'Eurospin — 24 agosto-6 settembre.pdf',           '2026-09-06'),
+ ('md',             'MD',             'dal 25 agosto al 6 settembre',                 'MD — 25 agosto-6 settembre.pdf',                 '2026-09-06'),
+ ('bennet',         'Bennet',         'dal 27 agosto al 9 settembre',                 'Bennet — 27 agosto-9 settembre.pdf',             '2026-09-09'),
+ ('ipercoop',       'Ipercoop',       'Sottocosto, dal 31 agosto al 9 settembre',     'Ipercoop Sottocosto — 31 agosto-9 settembre.pdf','2026-09-09'),
+ ('ipercoop_extra', 'Ipercoop',       'Extra offerte, dal 27 agosto al 9 settembre',  'Ipercoop Extra offerte — 27 agosto-9 settembre.pdf','2026-09-09'),
+ ('carriper20',     'Carrefour Iper', 'dal 20 agosto al 3 settembre',                 'Carrefour Iper — 20 agosto-3 settembre.pdf',     '2026-09-03'),
+ ('carriper04',     'Carrefour Iper', 'dal 4 settembre (fine stimata)',               'Carrefour Iper — dal 4 settembre.pdf',           '2026-09-17'),
 ]
 
 PRODOTTI = [
@@ -126,6 +132,19 @@ PRODOTTI = [
  ("Detersivo","Ipercoop","ipercoop","Cura casa","Detersivo per lavastoviglie Platinum Plus – Fairy","71 capsule",71,10.90,5,V,"Sottocosto −50%, prima 21,80. È per la lavastoviglie."),
  ("Detersivo","MD","md","Cura casa","24 Fresh Caps 3 in 1 per lavatrice – Actiff","24 capsule",24,4.29,18,V,"Prima 4,89."),
  ("Detersivo","MD","md","Cura casa","24 capsule per lavatrice bouquet floreale – DAT5","24 capsule",24,4.29,18,V,"Prima 4,99."),
+ # ------------------------------- SUINO (kg) -------------------------------
+ # Ci stanno sia i tagli freschi sia i salumi: sono tutti maiale, e il formato
+ # di ogni riga dice cos'e. Se un domani vuole separarli, basta una categoria in piu.
+ ("Suino","Lidl","lidl","Macelleria","Bocconcini di salsiccia","250 g",0.250,1.69,16,V,"−21%, prima 2,15. Il volantino stampa 6,76 al kg."),
+ ("Suino","Eurospin","eurospin","Macelleria","Braciole di coppa di suino","al kg",1,6.99,11,V,""),
+ ("Suino","Lidl","lidl","Macelleria","Trancio di coppa di suino","al kg",1,6.99,16,V,"Novità."),
+ ("Suino","Lidl","lidl","Macelleria","Sottilissime di lonza di suino","250 g",0.250,1.99,16,V,"−21% con la carta Lidl Plus, prima 2,55. Il volantino stampa 7,96 al kg."),
+ ("Suino","Ipercoop","ipercoop_extra","Gastronomia","Polpettone Buona Domenica – Amadori","700 g",0.700,7.43,14,V,"PREZZO SOCI (−40%). Senza tessera 9,91, cioè 14,16 al kg."),
+ ("Suino","Bennet","bennet","Salumi","Pancetta dolce o affumicata a cubetti – Fratelli Beretta","300 g (4 × 75 g)",0.300,3.98,8,V,"−30%, prima 5,69."),
+ ("Suino","Ipercoop","ipercoop","Salumi","Prosciutto cotto Alta Qualità – Beretta","240 g (2 × 120 g)",0.240,3.29,4,V,"Sottocosto −52%, prima 6,98."),
+ ("Suino","Ipercoop","ipercoop","Salumi","Salame Negronetto – Negroni","220 g",0.220,3.48,4,V,"Sottocosto −38%, prima 5,69."),
+ ("Suino","Bennet","bennet","Salumi","Prosciutto crudo o cotto di alta qualità – Citterio","240 g (3 × 80 g)",0.240,4.99,8,V,"−50% con la tessera Bennet Club, prima 9,99."),
+ ("Suino","Ipercoop","ipercoop_extra","Gastronomia","Carne salada del Trentino per carpaccio","100 g",0.100,3.36,14,V,"PREZZO SOCI (−25%). Senza tessera 4,49, cioè 44,90 al kg."),
 ]
 
 PRODOTTI.sort(key=lambda p: (list(UNITA).index(p[0]), p[7] / p[6]))

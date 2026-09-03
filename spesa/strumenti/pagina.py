@@ -21,8 +21,8 @@ import json, os, glob
 from dati import PRODOTTI, VOLANTINI, UNITA, D
 from lista import PARTENZA
 
-PDF     = {c: f for c, _, _, f in VOLANTINI}
-PERIODO = {c: p for c, _, p, _ in VOLANTINI}
+PDF     = {c: f for c, _, _, f, _ in VOLANTINI}
+PERIODO = {c: p for c, _, p, _, _ in VOLANTINI}
 
 offerte = [dict(cat=cat, ins=ins, rep=rep, pro=pro, fmt=fmt, prezzo=pre,
                 unitario=round(pre / qta, 3), pag=pag, pdf=PDF[chiave],
@@ -39,14 +39,28 @@ pagine = sorted((dict(ins=r['insegna'], periodo=r['validita'], pdf=PDF.get(r['ch
 
 volantini = [v for v in (dict(ins=i, periodo=p, pdf=f,
                               pagine=len([x for x in pagine if x['pdf'] == f]))
-                         for c, i, p, f in VOLANTINI) if v['pagine']]
+                         for c, i, p, f, _ in VOLANTINI) if v['pagine']]
 
 partenza = [dict(nome=n, parole=p, cat=c) for n, p, c in PARTENZA]
+
+# LA LISTA CHE COMANDA E QUELLA CHE HANNO LORO.
+# Manlio e la moglie aggiungono e tolgono prodotti dalla pagina pubblicata. Se
+# l'aggiornamento settimanale dei volantini ripartisse da PARTENZA, gliela
+# cancellerebbe tutta a ogni giro. Quindi: prima di rigenerare, si legge la
+# lista dalla pagina viva (lista_attuale.py la tira fuori e la scrive qui) e si
+# riparte da quella. PARTENZA serve solo se il file non c'e, cioe la prima volta.
+lista_viva = 'lista-attuale.json'
+if os.path.exists(lista_viva):
+    salvata = json.load(open(lista_viva, encoding='utf-8'))
+    if isinstance(salvata, list) and salvata:
+        partenza = salvata
+        print(f'lista ripresa dalla pagina viva: {len(partenza)} prodotti')
 
 DATI = json.dumps(dict(offerte=offerte, pagine=pagine, volantini=volantini,
                        partenza=partenza, unita={k: v[0] for k, v in UNITA.items()},
                        letto='2 settembre 2026'),
                   ensure_ascii=False, separators=(',', ':'))
+LISTA0 = json.dumps(partenza, ensure_ascii=False, separators=(',', ':'))
 
 HTML = r'''<title>Offerte di Corso Siracusa</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Asap:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap">
@@ -209,15 +223,15 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--linea);
            autocomplete="off" aria-label="Nomi del prodotto da aggiungere, separati da virgola">
     <button type="submit">Aggiungi</button>
   </form>
+  <p class="stato" id="stato-lista" role="status"></p>
 </div>
 
 <div id="risultato"></div>
 
-<section class="manda">
+<section class="manda" id="riquadro-manda">
   <h2>Mandami la tua lista</h2>
-  <p>Quello che cambi qui resta su questo telefono e non arriva a me. Se vuoi che vada a
-  leggere i prezzi anche per le voci che hai messo tu, tocca il bottone e incolla nella
-  chat: c'è già tutto, nomi alternativi compresi.</p>
+  <p id="perche-manda">Se la lista è condivisa non serve: la leggo da solo dalla pagina.
+  Serve solo su una copia che gira per conto suo, come il file salvato sul telefono.</p>
   <button type="button" id="btn-copia">Copia la mia lista</button>
   <p class="esito" id="esito" role="status"></p>
   <textarea id="testo-lista" readonly aria-label="La tua lista, da copiare"></textarea>
@@ -229,7 +243,7 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--linea);
   dei volantini. Il confronto è per unità e cambia col prodotto: la carne al chilo, il latte al
   litro, le uova all'uovo, la carta igienica al rotolo, il detersivo a lavaggio. Al chilo il
   detersivo darebbe un numero vero e inutile.</p>
-  <p>Se <b>aggiungi un prodotto tuo</b>, quello i prezzi non ce li ha: ti dice in quali pagine
+  <p>Se <b>aggiungi un prodotto nuovo</b>, quello i prezzi non ce li ha ancora: ti dice in quali pagine
   dei volantini compare la parola, e il prezzo lo leggi tu aprendo il PDF a quella pagina. Se
   però scrivi una parola che questa pagina già conosce — «caffe», «bovino», «uovo» — si
   riaggancia da sola ai prezzi giusti.</p>
@@ -255,8 +269,14 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--linea);
   link, da qualsiasi telefono.</p>
   <p>L'unica copia che <b>non</b> si aggiorna è il file salvato sul telefono: quello resta fermo
   al giorno in cui è stato fatto. Se ti interessa avere sempre i prezzi giusti, usa il link.</p>
-  <p><b>La lista dei prodotti resta su questo telefono.</b> Chi apre il link da un altro posto
-  riparte dai dodici di partenza e se li cambia per conto suo, senza toccare i tuoi.</p>
+  <p><b>La lista dei prodotti è una sola, condivisa.</b> Chi apre il link vede la stessa, e se
+  la cambia la cambia per tutti: aggiungere e togliere prodotti lo può fare chiunque abbia il
+  link. Quando qualcuno la tocca, gli altri schermi si aggiornano da soli. In cima alla pagina
+  c'è scritto se la copia che stai guardando è condivisa o no.</p>
+  <p>Un prodotto aggiunto adesso mostra <b>subito le pagine</b> dove compare, ma i
+  <b>prezzi arrivano dopo</b>: quelli vanno letti dalle pagine dei volantini a occhio, non c'è
+  modo di ricavarli da soli. Quando li ho letti compaiono anche quelli, senza che dobbiate
+  rifare niente.</p>
 
   <h2 style="margin-top:18px">I volantini</h2>
   <ul class="vol" id="vol"></ul>
@@ -269,7 +289,26 @@ footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--linea);
 
 <script>
 const DATI = __DATI__;
+
+/* La lista non e piu solo mia: vive DENTRO questa pagina pubblicata, cosi la
+   vedono e la cambiano tutti quelli che hanno il link. Quando qualcuno la
+   tocca, la pagina si ripubblica con la lista nuova dentro e ogni schermo
+   aperto si ricarica su quella. Vedi NOTE.md per il perche di questa strada
+   invece della memoria sul server. */
+const LISTA_PUBBLICATA = __LISTA__;
+const TEMPLATE = __TEMPLATE__;
 const CHIAVE = 'spesa.lista.v1';
+
+/* Rimette insieme il documento intero con dentro una lista nuova. L'ordine
+   conta: prima la lista, poi il template. Al contrario, il template appena
+   infilato porterebbe dentro un altro __LISTA__ e verrebbe riempito quello
+   sbagliato. Il <\/ serve perche un </script> dentro una stringa chiuderebbe
+   lo script per davvero. */
+function documento(nuova) {
+  const l = JSON.stringify(nuova).split('</').join('<\\/');
+  const t = JSON.stringify(TEMPLATE).split('</').join('<\\/');
+  return TEMPLATE.replace('__LISTA__', () => l).replace('__TEMPLATE__', () => t);
+}
 
 const norm = s => (s || '').toLowerCase()
   .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/['\u2019]/g, ' ');
@@ -277,7 +316,13 @@ const norm = s => (s || '').toLowerCase()
    diventerebbero tutti «0,14 €» e non si distinguerebbero piu */
 const eur = n => (n < 1 ? n.toFixed(3) : n.toFixed(2)).replace('.', ',');
 
+/* Comanda sempre la lista pubblicata: e quella che vedono tutti. La memoria
+   del browser resta solo come ripiego per la copia che gira da sola come file,
+   dove non c'e niente da ripubblicare. */
 function leggiLista() {
+  if (Array.isArray(LISTA_PUBBLICATA) && LISTA_PUBBLICATA.length) {
+    return LISTA_PUBBLICATA.map(riaggancia);
+  }
   try {
     const g = localStorage.getItem(CHIAVE);
     if (g) { const v = JSON.parse(g); if (Array.isArray(v) && v.length) return v.map(riaggancia); }
@@ -301,10 +346,65 @@ function riaggancia(v) {
   seme.parole.forEach(p => { if (!parole.some(x => norm(x) === norm(p))) parole.push(p); });
   return { nome: v.nome, parole, cat: seme.cat };
 }
-function salva() {
+function salvaLocale() {
   try { localStorage.setItem(CHIAVE, JSON.stringify(lista)); }
   catch (e) { /* la pagina funziona lo stesso, solo non ricorda */ }
 }
+
+let ART = null;          // la capacita di ripubblicare, se questa vista ce l'ha
+let soloMio = true;      // finche non sappiamo il contrario, la lista e solo qui
+let attesa = null;       // per non ripubblicare a ogni singolo tocco
+
+function stato(testo, brutto) {
+  const e = document.getElementById('stato-lista');
+  if (!e) return;
+  e.textContent = testo;
+  e.className = 'stato' + (brutto ? ' brutto' : '');
+}
+
+/* Si ripubblica dopo un attimo, non a ogni tocco: chi ne toglie tre di fila
+   fa una pubblicazione sola invece di tre, e gli altri schermi si ricaricano
+   una volta sola. */
+function salva() {
+  salvaLocale();
+  if (!ART || soloMio) return;
+  stato('Sto salvando per tutti…');
+  clearTimeout(attesa);
+  attesa = setTimeout(async () => {
+    try {
+      await ART.publish(documento(lista));
+      stato('Salvata. La vedono tutti quelli che hanno il link.');
+    } catch (err) {
+      const c = err && err.code;
+      if (c === 'conflict') {
+        /* qualcun altro ha salvato nel frattempo: ogni schermo si ricarica
+           sulla sua versione, quindi qui non si insiste */
+        stato('Nel frattempo l\'ha cambiata qualcun altro: fra un attimo vedi la sua.');
+      } else if (c === 'not_writer' || c === 'not_granted') {
+        soloMio = true;
+        stato('Puoi solo guardare la lista di chi te l\'ha mandata: le tue modifiche restano su questo telefono.', true);
+      } else {
+        stato('Non sono riuscito a salvarla per tutti. Resta su questo telefono.', true);
+      }
+    }
+  }, 1200);
+}
+
+/* La capacita arriva dopo, mai durante il primo giro di questo script: la
+   pagina deve funzionare gia prima, e accendersi quando arriva. */
+(async () => {
+  try {
+    ART = window.claude && claude.use ? await claude.use('artifact') : null;
+  } catch (e) { ART = null; }
+  if (ART) {
+    soloMio = false;
+    stato('Lista condivisa: quello che cambi lo vede anche chi ha il link.');
+  } else {
+    stato('Questa copia è solo tua: le modifiche restano su questo telefono.');
+  }
+  aggiornaRiquadroManda();
+  disegna();
+})();
 
 let lista = leggiLista();
 let scelto = 0;
@@ -567,21 +667,68 @@ btnCopia.onclick = async () => {
 
 document.getElementById('letto').textContent = 'letti il ' + DATI.letto;
 
+/* Il riquadro per rimandarmi la lista a mano ha senso solo dove la lista non e
+   condivisa: se lo e, la leggo dalla pagina pubblicata senza chiedere niente. */
+function aggiornaRiquadroManda() {
+  const r = document.getElementById('riquadro-manda');
+  const p = document.getElementById('perche-manda');
+  if (!r) return;
+  r.style.display = soloMio ? '' : 'none';
+  if (p && soloMio) {
+    p.textContent = 'Questa copia non è collegata alle altre: quello che cambi qui non arriva a me. '
+      + 'Tocca il bottone e incolla nella chat, ci sono anche i nomi alternativi.';
+  }
+}
+
 disegna();
 </script>'''
 
-pagina = HTML.replace('__DATI__', DATI)
-open('out/pagina.html', 'w', encoding='utf-8').write(pagina)
+# ---------------------------------------------------------------------------
+# Il documento contiene una copia di se stesso, cosi puo ripubblicarsi con una
+# lista nuova dentro senza perdere la capacita di rifarlo la volta dopo.
+#
+#   CORPO    = la pagina come la vuole il servizio (senza <html>/<head>: li
+#              mette lui), con dentro i due segnaposto
+#   COMPLETO = lo stesso, ma documento intero: e questo che la pagina
+#              ripubblica di sua iniziativa, e quindi e questo che si porta
+#              dietro come modello
+#
+# I segnaposto restano NON risolti dentro COMPLETO: e proprio quello che
+# permette alla generazione dopo di riempirli di nuovo. Prima la lista e poi il
+# modello, altrimenti il modello appena infilato porta dentro un altro
+# __LISTA__ e si riempie quello sbagliato.
+# ---------------------------------------------------------------------------
+def racchiudi(testo):
+    """JSON da mettere dentro un <script>: </script> va spezzato o chiude il tag."""
+    return json.dumps(testo, ensure_ascii=False).replace('</', '<\\/')
 
-# Copia autonoma da mandare per posta o WhatsApp: la pagina pubblicata viene
-# avvolta dal servizio in <!doctype>/<head>/<body>, il file grezzo no. Questa
-# se li porta dietro e si apre a doppio clic, senza account e senza rete
-# (i caratteri di Google non si caricano e si scende ai caratteri di sistema).
+CORPO = HTML.replace('__DATI__', DATI)
+
 INTESTA = ('<!doctype html>\n<html lang="it">\n<head>\n<meta charset="utf-8">\n'
            '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
            '<style>body{margin:0}img{max-width:100%}</style>\n')
-sola = INTESTA + pagina.replace('<title>', '<title>', 1) + '\n</body>\n</html>\n'
-sola = sola.replace('</style>\n\n<div class="guscio">', '</style>\n</head>\n<body>\n<div class="guscio">', 1)
-open('out/spesa-da-sola.html', 'w', encoding='utf-8').write(sola)
-print('scritta —', len(HTML) + len(DATI), 'caratteri;', len(partenza), 'prodotti,',
-      len(offerte), 'offerte,', len(pagine), 'pagine')
+COMPLETO = (INTESTA + CORPO + '\n</body>\n</html>\n').replace(
+    '</style>\n\n<div class="guscio">', '</style>\n</head>\n<body>\n<div class="guscio">', 1)
+
+def riempi(modello):
+    """Riempie SOLO la prima occorrenza di ogni segnaposto.
+
+    I due segnaposto compaiono due volte ciascuno: una e quella vera, in cima
+    allo script, l'altra e la stringa dentro documento() che serve a
+    sostituirla la volta dopo. Riempiendole tutte e due si rompe documento() e
+    il file cresce di 200 KB inutili. La prima e sempre quella vera, perche le
+    due costanti sono dichiarate sopra la funzione; in JavaScript replace() con
+    una stringa si ferma alla prima da solo, quindi le due parti si comportano
+    allo stesso modo."""
+    return (modello
+            .replace('__LISTA__', LISTA0, 1)
+            .replace('__TEMPLATE__', racchiudi(COMPLETO), 1))
+
+open('out/pagina.html', 'w', encoding='utf-8').write(riempi(CORPO))
+
+# Copia che si apre a doppio clic, senza account e senza rete. Non puo
+# ripubblicare (non c'e nessun window.claude): li la lista resta sua.
+open('out/spesa-da-sola.html', 'w', encoding='utf-8').write(riempi(COMPLETO))
+
+print('scritta —', len(riempi(CORPO)) // 1024, 'KB;', len(partenza), 'prodotti in lista,',
+      len(offerte), 'prezzi,', len(pagine), 'pagine indicizzate')

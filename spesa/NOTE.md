@@ -75,21 +75,75 @@ da navigare», «così non si può vedere». Due cose da non rifare:
 
 Bersagli grandi (44-46 px) come nella Palestra: si usa in piedi, in negozio.
 
-### Perché la lista sta nel browser e non sul server
+### La lista adesso vive DENTRO la pagina pubblicata
 
-La memoria condivisa delle pagine pubblicate (capacità `db`) sarebbe la cosa
-giusta — lista sola, aggiornata per tutti e due — ma **un artifact che dichiara
-`db` diventa interno all'organizzazione** e non si può condividere fuori. Sul
-piano Pro di Manlio l'organizzazione è lui solo, quindi la moglie resterebbe
-fuori, che è esattamente quello che aveva chiesto di poter fare.
+Cambiata il 2026-09-03. Manlio ha chiesto che la lista sia una sola per lui e
+sua moglie, che ognuno possa aggiungere e togliere, e che le sue modifiche
+arrivino anche a me senza doverle reincollare.
 
-Perciò la lista vive in `localStorage` (chiave `spesa.lista.v1`), una copia per
-telefono: il link si condivide con chiunque, e ognuno se la regola. Il prezzo è
-che le modifiche di lui non arrivano a lei. **Se un domani dice che vuole la
-lista condivisa davvero, si passa a `db` — ma va detto prima che così la moglie
-non entra più.** Letture e scritture sono in try/catch: in navigazione privata
-la memoria può mancare e la pagina deve funzionare lo stesso, ripartendo dai
-dodici predefiniti.
+Si usa la capacità **`artifact`**, non `db`: `db` avrebbe reso l'artifact
+interno all'organizzazione e la moglie non sarebbe più entrata (vedi sotto). Con
+`artifact` la pagina, quando qualcuno tocca la lista, **ripubblica se stessa**
+con la lista nuova dentro, e ogni schermo aperto si ricarica su quella.
+
+**Il documento contiene una copia di se stesso.** `TEMPLATE` è il documento
+intero con i due segnaposto `__LISTA__` e `__TEMPLATE__` ancora dentro, non
+risolti: è quello che permette alla generazione dopo di rifare la stessa cosa.
+`documento()` riempie **prima la lista e poi il modello** — al contrario, il
+modello appena infilato porterebbe dentro un altro `__LISTA__` e verrebbe
+riempito quello sbagliato.
+
+Tre trappole, tutte già pagate:
+
+1. **I segnaposto compaiono due volte**: quello vero in cima allo script e la
+   stringa dentro `documento()` che serve a sostituirlo. `riempi()` in
+   `pagina.py` usa `count=1` e JavaScript si ferma da solo alla prima. Senza,
+   `documento()` si rompe e il file cresce di 200 KB inutili.
+2. **`</script>` dentro la stringa chiuderebbe il tag per davvero**: si scrive
+   `<\/`. Lo fanno sia `racchiudi()` in Python sia `documento()` in JavaScript,
+   e devono restare d'accordo.
+3. **Il documento ripubblicato deve essere intero** (doctype, head, body), che
+   invece al file dato allo strumento Artifact li mette il servizio. Per questo
+   il modello è `COMPLETO` e non `CORPO`.
+
+Il punto fisso è provato: rigenerando tre volte il modello resta identico e il
+documento non cresce (445 KB). Se tocchi questa parte, riprova così — è un
+controllo che si fa in Node in un minuto e ti risparmia una pagina rotta in mano
+a loro.
+
+Chi apre in sola lettura riceve `not_writer`: le sue modifiche restano nel
+browser e la riga di stato in cima glielo dice. La stessa cosa vale per il file
+`spesa-da-sola.html`, dove `window.claude` non esiste proprio.
+
+### `lista_attuale.py`: non cancellargli la lista
+
+**Il pericolo grosso di tutta questa architettura.** L'aggiornamento
+settimanale rigenera la pagina; se ripartisse da `lista.py` cancellerebbe la
+lista che si sono fatti loro. Quindi prima si legge la pagina viva
+(strumento Artifact, action "read"), si passa a `lista_attuale.py`, che scrive
+`lista-attuale.json`, e `pagina.py` riparte da quello. `lista.py` serve solo la
+prima volta.
+
+Se la lista non si riesce a leggere, **fermarsi**: meglio prezzi vecchi che una
+lista cancellata.
+
+### Perché NON si è usata la memoria sul server (`db`)
+
+`db` sarebbe più semplice da scrivere, ma **un artifact che dichiara `db`
+diventa interno all'organizzazione** e non si condivide fuori. Sul piano Pro di
+Manlio l'organizzazione è lui solo: la moglie resterebbe fuori, che è la cosa
+che ha chiesto fin dall'inizio di poter fare. Per questo si è presa la strada
+più scomoda della pagina che si ripubblica.
+
+`localStorage` (chiave `spesa.lista.v1`) resta solo come ripiego, per la copia
+che gira come file. Letture e scritture in try/catch: in navigazione privata la
+memoria può mancare e la pagina deve funzionare lo stesso.
+
+**Il baco che ha fatto venire fuori tutto**: Manlio aveva tolto la carta
+igienica e se la ritrovava. Non era un baco nel togliere (provato in Node,
+funziona): aveva **due copie**, il link e il file, ognuna con la sua memoria.
+Togliere in una non toccava l'altra. Con la lista dentro la pagina il problema
+non esiste più.
 
 ### Tutte e dodici le categorie hanno i prezzi
 
@@ -164,6 +218,27 @@ e infatti la seconda volta si è spazientito.
 La `textarea` sotto il bottone **non è un di più**: negli artifact la scrittura
 negli appunti può essere negata in silenzio, e in quel caso il testo deve
 restare lì da selezionare a mano. Il `catch` scrive cosa fare.
+
+### I volantini si rinnovano da soli
+
+Chiesto il 2026-09-03: prendere il volantino nuovo **il giorno prima** che
+scada il vecchio, e cancellare il vecchio **due giorni dopo** che è scaduto per
+non farne collezione.
+
+`VOLANTINI` in `dati.py` ha adesso un quinto campo, l'**ultimo giorno di
+validità**. `pulisci.py` lo legge e dice cosa rinnovare e cosa buttare;
+con `--fai` cancella davvero pagine, OCR e PDF. I due giorni di tolleranza
+servono a poter ancora controllare l'offerta di ieri contro lo scontrino.
+
+C'è una **Routine giornaliera** (`trig_01UMkRYxHXJfPBSEZLo7Snzb`, ogni giorno
+alle 04:00 UTC) che apre una sessione nuova, esegue `pulisci.py` e, se non c'è
+niente da fare, **si ferma senza scrivere a nessuno** — è il caso normale. Se
+invece qualcosa scade, rifà il giro completo e ripubblica. Il prompt della
+Routine contiene tutti i passi; è il posto da correggere se il giro cambia.
+
+**I PDF non si accumulano da nessuna parte**: vivono nella cartella di lavoro
+della sessione, che è temporanea e sparisce da sola. Le copie che ha Manlio sono
+quelle nella chat, sul suo telefono, e quelle le cancella lui.
 
 ### L'aggiornamento delle offerte
 
