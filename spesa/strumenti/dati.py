@@ -39,20 +39,30 @@ UNITA = {
  'Cioccolato':     ('al kg',        'kg'),
 }
 
-# chiave, insegna, periodo leggibile, nome del PDF, ULTIMO GIORNO DI VALIDITA
+# chiave, insegna, periodo leggibile, nome del PDF, ultimo giorno, INDIRIZZO DELLA PAGINA
+#
+# L'ultimo campo e l'indirizzo pubblico di una singola pagina del volantino, con
+# {n} al posto del numero: serve a rendere cliccabili le righe della pagina, cosi
+# Manlio apre il volantino al punto giusto invece di leggere «pagina 16» e
+# arrangiarsi. Le due fonti numerano diversamente: anteprimavolantino riempie di
+# zeri (a volte due cifre, a volte cinque, dipende dal volantino), volantinopiu
+# no. Vanno ricontrollati a ogni volantino nuovo insieme alle date.
 # L'ultimo giorno serve a due cose: sapere quando andare a prendere il volantino
 # nuovo (il giorno prima), e buttare via il vecchio due giorni dopo, come ha
 # chiesto Manlio per non ritrovarsi una collezione. Se non e stampato sul
 # volantino si mette la stima e si scrive «stimato» nel periodo.
+_AV = 'https://www.anteprimavolantino.it/public/uploads'
+_VP = 'https://resources.volantinopiu.it/flyer'
+
 VOLANTINI = [
- ('lidl',           'Lidl',           'dal 3 al 9 settembre (sottocosto fino al 12)', 'Lidl — 3-9 settembre.pdf',                       '2026-09-12'),
- ('eurospin',       'Eurospin',       'dal 24 agosto al 6 settembre',                 'Eurospin — 24 agosto-6 settembre.pdf',           '2026-09-06'),
- ('md',             'MD',             'dal 25 agosto al 6 settembre',                 'MD — 25 agosto-6 settembre.pdf',                 '2026-09-06'),
- ('bennet',         'Bennet',         'dal 27 agosto al 9 settembre',                 'Bennet — 27 agosto-9 settembre.pdf',             '2026-09-09'),
- ('ipercoop',       'Ipercoop',       'Sottocosto, dal 31 agosto al 9 settembre',     'Ipercoop Sottocosto — 31 agosto-9 settembre.pdf','2026-09-09'),
- ('ipercoop_extra', 'Ipercoop',       'Extra offerte, dal 27 agosto al 9 settembre',  'Ipercoop Extra offerte — 27 agosto-9 settembre.pdf','2026-09-09'),
- ('carriper20',     'Carrefour Iper', 'dal 20 agosto al 3 settembre',                 'Carrefour Iper — 20 agosto-3 settembre.pdf',     '2026-09-03'),
- ('carriper04',     'Carrefour Iper', 'dal 4 settembre (fine stimata)',               'Carrefour Iper — dal 4 settembre.pdf',           '2026-09-17'),
+ ('lidl',           'Lidl',           'dal 3 al 9 settembre (sottocosto fino al 12)', 'Lidl — 3-9 settembre.pdf',                          '2026-09-12', _AV + '/2026/08/volantino-lidl-2026-09-03-p-{n:02d}.jpg'),
+ ('eurospin',       'Eurospin',       'dal 24 agosto al 6 settembre',                 'Eurospin — 24 agosto-6 settembre.pdf',              '2026-09-06', _AV + '/2026/08/volantino-eurospin-2026-08-24-p-{n:02d}.jpg'),
+ ('md',             'MD',             'dal 25 agosto al 6 settembre',                 'MD — 25 agosto-6 settembre.pdf',                    '2026-09-06', _AV + '/2026/08/volantino-md-2026-08-25-p-{n:02d}.jpg'),
+ ('bennet',         'Bennet',         'dal 27 agosto al 9 settembre',                 'Bennet — 27 agosto-9 settembre.pdf',                '2026-09-09', _AV + '/2026/08/volantino-bennet-2026-08-27-p-{n:05d}.jpg'),
+ ('ipercoop',       'Ipercoop',       'Sottocosto, dal 31 agosto al 9 settembre',     'Ipercoop Sottocosto — 31 agosto-9 settembre.pdf',   '2026-09-09', _VP + '/2/8/4/8/0/pagine/{n}.jpg'),
+ ('ipercoop_extra', 'Ipercoop',       'Extra offerte, dal 27 agosto al 9 settembre',  'Ipercoop Extra offerte — 27 agosto-9 settembre.pdf','2026-09-09', _VP + '/2/8/4/5/1/pagine/{n}.jpg'),
+ ('carriper20',     'Carrefour Iper', 'dal 20 agosto al 3 settembre',                 'Carrefour Iper — 20 agosto-3 settembre.pdf',        '2026-09-03', _AV + '/2026/08/volantino-carrefour-iper-2026-08-20-p-{n:02d}.jpg'),
+ ('carriper04',     'Carrefour Iper', 'dal 4 settembre (fine stimata)',               'Carrefour Iper — dal 4 settembre.pdf',              '2026-09-17', _AV + '/2026/09/volantino-carrefour-iper-2026-09-04-p-{n:05d}.jpg'),
 ]
 
 PRODOTTI = [
