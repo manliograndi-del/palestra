@@ -85,6 +85,28 @@ Se devi nominare quel tag in un commento, scrivilo spezzato o giragli intorno a
 parole. Vale anche per le stringhe: `racchiudi()` in Python e `documento()` in
 JavaScript spezzano ogni `</` in `<\/` proprio per questo.
 
+### L'iniziale maiuscola, e perché non bastava cambiare i dati
+
+Manlio ha aggiunto quattro prodotti scrivendoli minuscoli e poi ha chiesto la
+maiuscola. Io li ho messi maiuscoli in `lista.py` — e lui **continuava a
+vederli minuscoli**, giustamente: sul sito comanda la lista salvata nel suo
+browser, non quella incorporata nella pagina. Qualunque cosa pubblichi, i suoi
+nomi restano i suoi.
+
+Quindi la maiuscola la mette **la pagina**, non i dati: `maiuscola()` in
+`pagina.py` agisce quando si aggiunge o si rinomina un prodotto **e** su ogni
+lista letta dalla memoria, così le liste già salvate si sistemano da sole senza
+che nessuno tocchi niente.
+
+**Solo la prima lettera, e in JavaScript.** `text-transform: capitalize` del CSS
+maiuscolizza ogni parola e storpierebbe «Olio d'oliva» in «Olio D'oliva».
+
+La regola generale, che vale per ogni cosa del genere: **se il cambiamento deve
+vedersi anche su una lista già salvata, va fatto nel codice della pagina, non
+nei dati di partenza.** Altrimenti lo vedono solo i telefoni nuovi.
+`strumenti/prova-maiuscole.js` prova esattamente questo: finge una lista salvata
+coi nomi minuscoli e controlla come esce.
+
 ### `prova.js`: aprire la pagina per davvero, sempre
 
 Il 2026-09-03 la pagina è uscita rotta **tre volte di fila**, e ogni volta

@@ -277,6 +277,14 @@ const norm = s => (s || '').toLowerCase()
    diventerebbero tutti «0,14 €» e non si distinguerebbero piu */
 const eur = n => (n < 1 ? n.toFixed(3) : n.toFixed(2)).replace('.', ',');
 
+/* Iniziale maiuscola sul nome che si legge, chiesto da Manlio: scriveva
+   «biscotti» e se lo ritrovava minuscolo in mezzo agli altri. Si tocca solo la
+   prima lettera, non ogni parola: «Olio d'oliva» deve restare cosi, e
+   text-transform:capitalize del CSS lo storpierebbe in «Olio D'oliva».
+   Le parole con cui si cerca restano minuscole: tanto il confronto le
+   abbassa comunque. */
+const maiuscola = t => (t || '').charAt(0).toUpperCase() + (t || '').slice(1);
+
 /* Dove la lista e condivisa comanda quella dentro la pagina: e quella che
    vedono tutti, e viene aggiornata ripubblicando. Dove non lo e (il sito, il
    file) comanda quella che l'utente si e fatto: nessuno aggiornera mai quella
@@ -299,6 +307,7 @@ function leggiLista() {
    non corrisponde a niente resta com'e. */
 function riaggancia(v) {
   if (!v || !v.nome) return v;
+  v = { ...v, nome: maiuscola(v.nome) };
   if (v.cat) return v;
   const nomi = [v.nome].concat(v.parole || []).map(norm);
   const seme = DATI.partenza.find(x =>
@@ -306,7 +315,7 @@ function riaggancia(v) {
   if (!seme) return v;
   const parole = (v.parole || []).slice();
   seme.parole.forEach(p => { if (!parole.some(x => norm(x) === norm(p))) parole.push(p); });
-  return { nome: v.nome, parole, cat: seme.cat };
+  return { nome: maiuscola(v.nome), parole, cat: seme.cat };
 }
 function salvaLocale() {
   try { localStorage.setItem(CHIAVE, JSON.stringify(lista)); }
@@ -395,7 +404,7 @@ function costruisci(testo) {
   for (const p of termini.concat(seme ? seme.parole : [])) {
     if (!parole.some(x => norm(x) === norm(p))) parole.push(p);
   }
-  return { nome: termini[0], parole, cat: seme ? seme.cat : null };
+  return { nome: maiuscola(termini[0]), parole, cat: seme ? seme.cat : null };
 }
 
 /* ---------- barra dei prodotti ---------- */
