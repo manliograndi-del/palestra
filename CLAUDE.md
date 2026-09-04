@@ -170,6 +170,28 @@ di `palestra.indice`, di là si rompe qualcosa: vai a guardare.
 
 ## Che i dati non spariscano
 
+**"Azzera la seduta di oggi" chiede conferma e si può annullare** (dal
+2026-09-02). Prima cancellava tutto **con un tocco solo**, e stava in fondo alla
+schermata dell'allenamento: quel giorno Manlio si è ritrovato la seduta
+cancellata senza sapere come. Sull'orologio la doppia conferma c'era dal
+2026-08-26, qui no. Adesso il primo tocco arma il tasto ("Sicuro? Tocca ancora
+per azzerare", che si disarma da solo dopo 5 secondi), e dopo l'azzeramento
+resta per 40 secondi un "Seduta azzerata — annulla" che rimette tutto,
+cardio compreso. **Non togliere né la conferma né l'annulla**: si usa in piedi,
+con le mani sudate.
+
+**Svuotare e ricaricare devono essere la stessa riga** (`caricaGiorno()`).
+`alRisveglio` al cambio di data azzerava le spunte in memoria e **non leggeva
+quelle salvate**: la prima spunta successiva riscriveva la seduta del giorno con
+quel poco rimasto in memoria, e un allenamento intero spariva. Adesso il cambio
+di data passa sempre da `controllaData()`, che carica la seduta del giorno nuovo.
+
+**Il giorno cambia anche mentre l'app è aperta**: un `setInterval` di 20 secondi
+lo controlla, come fa il Diario. Prima ce ne accorgevamo solo al risveglio, e una
+pagina lasciata aperta la sera scriveva l'allenamento del mattino dopo sotto la
+data di ieri.
+
+
 Le impostazioni si scrivono in **due copie** (`palestra.config` e
 `palestra.config.bis`, dal 2026-09-02): se la prima è illeggibile si prende la
 seconda e si riscrive la prima. L'indice si ricostruisce dalle sedute, questo

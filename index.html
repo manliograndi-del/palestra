@@ -85,7 +85,8 @@ input{font-family:inherit}
 
 .b1{width:100%;background:var(--rosso);color:var(--su-rosso);padding:17px;border-radius:99px;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-top:6px}
 .b2{width:100%;background:transparent;padding:15px;border:1.5px solid var(--linea);border-radius:99px;font-size:14px;font-weight:700;margin-top:9px;color:var(--inchiostro)}
-.b1:active,.b2:active{transform:scale(.98)}
+.b1:active,.b2.avvisa{border-color:var(--rosso);color:var(--rosso)}
+.b2:active{transform:scale(.98)}
 
 /* TIMER — l'elemento che comanda la seduta */
 .timer{
@@ -259,6 +260,7 @@ var S={
   pesiRif:{},         // i carichi della seduta precedente: proposta e termine di paragone
   msg:null, spia:"", focus:null, aperto:null, apertoS:null, export:"", importa:"",
   drive:{on:false,id:null,ultimo:null,rev:null}, driveStato:"",
+  azzeraOk:false, annulla:null,
   orologio:null       // la seduta arrivata dal polso, in attesa di conferma
 };
 
@@ -277,8 +279,7 @@ function avvia(){
   S.indice=leggi(K_IDX,{})||{};
   ricostruisciIndice();
   completaIndice();
-  var s=leggi(K_S+S.data,null);
-  if(s){ S.fatte=s.fatte||{}; S.pesi=s.pesi||{}; S.cardio=s.cardio||{}; }
+  caricaGiorno();
   calcolaRiferimenti();
   chiediMemoriaStabile();
   if(!memOk) S.msg="Questo browser non permette il salvataggio. Esci dalla navigazione privata.";
@@ -427,6 +428,7 @@ function completaIndice(){
   if(cambiato) scrivi(K_IDX,S.indice);
 }
 
+var tAzzera=null, tAnnulla=null;
 var tSalva=null;
 function salva(){
   S.spia="in corso"; spiaAgg();
@@ -523,11 +525,30 @@ function schermoAcceso(v){
    quando è cambiato il giorno. Il telefono può sospendere o buttare via la
    pagina mentre è in tasca: al risveglio restava com'era rimasta, a volte
    vuota. Ridisegnarla la rimette in piedi in ogni caso. */
+/* Carica dalla memoria la seduta di `S.data`. **Esiste per non svuotare mai
+   senza ricaricare**, che è il difetto che il 2026-09-02 ha cancellato a Manlio
+   tutte le serie di una giornata: al cambio di data l'app azzerava le spunte in
+   memoria e non leggeva quelle salvate, e la prima spunta successiva riscriveva
+   la seduta del giorno con quel poco che era rimasto in memoria. Svuotare e
+   ricaricare devono essere la stessa riga di codice. */
+function caricaGiorno(){
+  var s=leggi(K_S+S.data,null);
+  S.fatte=(s&&s.fatte)||{}; S.pesi=(s&&s.pesi)||{}; S.cardio=(s&&s.cardio)||{};
+}
+/* Il giorno cambia anche mentre l'app è aperta. Prima ce ne accorgevamo solo al
+   risveglio: una pagina lasciata aperta la sera scriveva l'allenamento del
+   mattino dopo sotto la data di ieri. */
+function controllaData(){
+  var d=oggiISO();
+  if(d===S.data) return false;
+  S.data=d; caricaGiorno(); calcolaRiferimenti();
+  return true;
+}
+setInterval(function(){ if(controllaData()) render(); },20000);
 function alRisveglio(){
   if(document.hidden) return;
   if(S.schermo) schermoAcceso(true);
-  var d=oggiISO();
-  if(d!==S.data){ S.data=d; S.fatte={}; S.pesi={}; S.cardio={}; calcolaRiferimenti(); }
+  controllaData();
   render();
   if(T.att) tic();
 }
@@ -743,8 +764,17 @@ function vAllenamento(){
        '</div></div>';
   });
 
+  /* **Azzerare chiede conferma, e si può annullare.** Il 2026-09-02 Manlio si è
+     ritrovato la seduta del giorno cancellata senza sapere come: questo tasto
+     stava in fondo alla schermata e bastava sfiorarlo. Sull'orologio la doppia
+     conferma c'era dal 2026-08-26, qui no. Un tasto che butta via un'ora di
+     palestra con un tocco solo non va bene in un posto dove si usa il telefono
+     con le mani sudate. */
+  if(S.annulla)
+    h+='<button class="b1" data-az="annulla-azzera">Seduta azzerata \u2014 annulla</button>';
   if(fatte>0||Object.keys(S.cardio).length>0)
-    h+='<button class="b2" data-az="azzera">Azzera la seduta di oggi</button>';
+    h+='<button class="b2'+(S.azzeraOk?" avvisa":"")+'" data-az="azzera">'+
+       (S.azzeraOk?"Sicuro? Tocca ancora per azzerare":"Azzera la seduta di oggi")+'</button>';
   return h;
 }
 
@@ -999,8 +1029,25 @@ document.body.addEventListener("click",function(ev){
   else if(az==="t-piu"){ if(T.att){T.fine+=15000;T.durata+=15;tic();} else {avviaTimer(15,"Ancora un attimo");} }
   else if(az==="t-stop"){ fermaTimer(); }
   else if(az==="azzera"){
+    if(!S.azzeraOk){
+      S.azzeraOk=true;
+      clearTimeout(tAzzera); tAzzera=setTimeout(function(){ S.azzeraOk=false; render(); },5000);
+      render(); return;
+    }
+    clearTimeout(tAzzera); S.azzeraOk=false;
     SCHEDA[1].es.forEach(function(e){ if(S.pesi[e.n]) S.pesiPrec[e.n]=S.pesi[e.n]; });
-    S.fatte={}; S.cardio={}; salvaCfg(); salva(); fermaTimer(); render();
+    /* la seduta di prima resta da parte: se il tocco era sbagliato si torna indietro */
+    S.annulla={fatte:S.fatte,pesi:S.pesi,cardio:S.cardio};
+    S.fatte={}; S.cardio={};
+    salvaCfg(); salva(); fermaTimer();
+    clearTimeout(tAnnulla); tAnnulla=setTimeout(function(){ S.annulla=null; render(); },40000);
+    render();
+  }
+  else if(az==="annulla-azzera"){
+    if(!S.annulla) return;
+    S.fatte=S.annulla.fatte||{}; S.pesi=S.annulla.pesi||S.pesi; S.cardio=S.annulla.cardio||{};
+    S.annulla=null; clearTimeout(tAnnulla);
+    salva(); render();
   }
   else if(az==="apri"){
     var d=b.getAttribute("data-d");
