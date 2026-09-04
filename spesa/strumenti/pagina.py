@@ -21,11 +21,21 @@ import json, os, glob
 from dati import PRODOTTI, VOLANTINI, UNITA, D
 from lista import PARTENZA
 
-PDF     = {c: f for c, _, _, f, _ in VOLANTINI}
-PERIODO = {c: p for c, _, p, _, _ in VOLANTINI}
+PDF     = {c: f for c, _, _, f, _, _ in VOLANTINI}
+MODELLO = {c: m for c, _, _, _, _, m in VOLANTINI}
+
+def indirizzo(chiave, n):
+    """L'indirizzo pubblico di una pagina del volantino, per renderla cliccabile.
+    Senza numero di pagina non c'e niente da aprire: torna None e la riga resta
+    scritta e basta."""
+    if not n or chiave not in MODELLO:
+        return None
+    return MODELLO[chiave].format(n=n)
+PERIODO = {c: p for c, _, p, _, _, _ in VOLANTINI}
 
 offerte = [dict(cat=cat, ins=ins, rep=rep, pro=pro, fmt=fmt, prezzo=pre,
                 unitario=round(pre / qta, 3), pag=pag, pdf=PDF[chiave],
+                url=indirizzo(chiave, pag),
                 periodo=PERIODO[chiave], dubbio=(fon == D), note=note)
            for cat, ins, chiave, rep, pro, fmt, qta, pre, pag, fon, note in PRODOTTI]
 
@@ -33,13 +43,14 @@ idx = json.load(open('indice.json', encoding='utf-8'))
 validi = {(os.path.basename(os.path.dirname(f)), int(os.path.basename(f)[:-4]))
           for f in glob.glob('pg/*/*.jpg')}
 pagine = sorted((dict(ins=r['insegna'], periodo=r['validita'], pdf=PDF.get(r['chiave'], ''),
-                      pag=r['pagina'], parole=r['parole'])
+                      pag=r['pagina'], parole=r['parole'],
+                      url=indirizzo(r['chiave'], r['pagina']))
                  for r in idx if (r['chiave'], r['pagina']) in validi),
                 key=lambda r: (r['ins'], r['periodo'], r['pag']))
 
 volantini = [v for v in (dict(ins=i, periodo=p, pdf=f,
                               pagine=len([x for x in pagine if x['pdf'] == f]))
-                         for c, i, p, f, _ in VOLANTINI) if v['pagine']]
+                         for c, i, p, f, _, _ in VOLANTINI) if v['pagine']]
 
 partenza = [dict(nome=n, parole=p, cat=c) for n, p, c in PARTENZA]
 
@@ -165,6 +176,10 @@ h1 span{display:block;color:var(--rosso);font-size:12px;letter-spacing:.16em;mar
 .prezzo-riga .nota{grid-column:1/-1;margin:6px 0 0;font-size:13.5px;color:var(--tenue)}
 .prezzo-riga .dove{grid-column:1/-1;margin:6px 0 0;font-size:13px;color:var(--tenue);
   border-left:3px solid var(--linea);padding-left:9px}
+a.dove.apri{display:inline-block;margin-top:8px;color:var(--rosso);font-weight:600;
+  text-decoration:underline;text-underline-offset:3px;border-left:0;padding:7px 0;
+  min-height:34px}
+a.dove.apri::after{content:' \2197'}
 
 /* ---- elenco pagine ---- */
 .pag-riga{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
@@ -174,6 +189,11 @@ h1 span{display:block;color:var(--rosso);font-size:12px;letter-spacing:.16em;mar
 .pag-riga .per{display:block;color:var(--tenue);font-size:12.5px;font-weight:400}
 .pag-riga .np{font-family:var(--f-prezzo);font-size:19px;font-weight:600;
   font-variant-numeric:tabular-nums;white-space:nowrap}
+a.pag-riga{text-decoration:none;color:inherit}
+a.pag-riga.apribile{padding:13px 0;min-height:48px}
+a.pag-riga.apribile .ins{color:var(--rosso);text-decoration:underline;text-underline-offset:3px}
+a.pag-riga.apribile .np{color:var(--rosso)}
+a.pag-riga.apribile .np::after{content:' \2197';font-family:var(--f-testo);font-size:13px}
 .altre{width:100%;margin-top:12px;background:var(--pannello);border:1.5px solid var(--linea);
   border-radius:10px;padding:12px;font-size:14.5px;font-weight:600;cursor:pointer;min-height:46px}
 .vuoto{color:var(--tenue);font-size:14.5px;margin:14px 0 0;background:var(--pannello);
@@ -509,16 +529,34 @@ function rigaPrezzo(o, primo) {
     const n = document.createElement('p'); n.className = 'nota'; n.textContent = o.note;
     d.appendChild(n);
   }
-  const w = document.createElement('p');
-  w.className = 'dove';
-  w.textContent = o.pag ? `${o.pdf} — pagina ${o.pag}` : `${o.pdf} — pagina non individuata`;
-  d.appendChild(w);
+  d.appendChild(dove(o));
   return d;
 }
 
+/* La riga che dice dov'e l'offerta. Se so l'indirizzo della pagina diventa un
+   collegamento che apre il volantino a quella pagina: prima c'era scritto
+   «pagina 16» e Manlio doveva arrangiarsi. Si apre in una scheda nuova, cosi
+   non perde la lista. */
+function dove(o) {
+  if (!o.url) {
+    const p = document.createElement('p');
+    p.className = 'dove';
+    p.textContent = o.pag ? `${o.pdf} — pagina ${o.pag}` : `${o.pdf} — pagina non individuata`;
+    return p;
+  }
+  const a = document.createElement('a');
+  a.className = 'dove apri';
+  a.href = o.url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.textContent = `Apri la pagina ${o.pag} del volantino`;
+  return a;
+}
+
 function rigaPagina(p) {
-  const d = document.createElement('div');
-  d.className = 'pag-riga';
+  const d = document.createElement(p.url ? 'a' : 'div');
+  d.className = 'pag-riga' + (p.url ? ' apribile' : '');
+  if (p.url) { d.href = p.url; d.target = '_blank'; d.rel = 'noopener noreferrer'; }
   d.innerHTML = `<span><span class="ins"></span><span class="per"></span></span><span class="np"></span>`;
   d.querySelector('.ins').textContent = p.ins;
   d.querySelector('.per').textContent = p.periodo;

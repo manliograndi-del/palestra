@@ -107,6 +107,28 @@ nei dati di partenza.** Altrimenti lo vedono solo i telefoni nuovi.
 `strumenti/prova-maiuscole.js` prova esattamente questo: finge una lista salvata
 coi nomi minuscoli e controlla come esce.
 
+### Le righe aprono il volantino alla pagina giusta
+
+Chiesto da Manlio il 2026-09-04: leggere «pagina 16» e doversi arrangiare non
+serviva a niente. Adesso sia le righe dei prezzi sia quelle dell'elenco pagine
+sono **collegamenti** che aprono l'immagine di quella pagina, in una scheda
+nuova.
+
+Non si ospita niente: si punta all'immagine originale, dove il volantino sta
+già. Il sesto campo di `VOLANTINI` in `dati.py` è il modello dell'indirizzo, con
+`{n}` al posto del numero. **Le due fonti numerano diversamente** — anteprima­
+volantino riempie di zeri (due cifre per certi volantini, cinque per altri, senza
+una logica), volantinopiu no — quindi a ogni volantino nuovo il modello va
+ricontrollato insieme alle date, e provato.
+
+`strumenti/prova-collegamenti.js` clicca ogni prodotto, raccoglie tutti gli
+indirizzi e controlla che siano ben formati e che si aprano in una scheda nuova;
+poi vale la pena provarne una dozzina con `curl` e pretendere 200. Un modello
+sbagliato non dà errore: dà righe che portano a una pagina bianca.
+
+Le righe senza numero di pagina (quelle prese dai riassunti online) restano
+scritte e non cliccabili, ed è giusto: non so a quale pagina puntare.
+
 ### `prova.js`: aprire la pagina per davvero, sempre
 
 Il 2026-09-03 la pagina è uscita rotta **tre volte di fila**, e ogni volta
