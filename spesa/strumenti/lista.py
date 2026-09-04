@@ -24,4 +24,9 @@ PARTENZA = [
  ("Formaggio",      ["formaggio", "parmigiano", "grana", "mozzarella", "gorgonzola"],   "Formaggio"),
  ("Uova",           ["uova", "uovo"],                                                   "Uova"),
  ("Olio d'oliva",   ["olio", "extravergine", "oliva"],                                  "Olio d'oliva"),
+ # aggiunti da Manlio il 2026-09-04, con l'iniziale maiuscola come ha chiesto
+ ("Biscotti",       ["biscotti", "biscotto", "frollini", "gocciole", "pavesini", "wafer"], "Biscotti"),
+ ("Yogurt",         ["yogurt", "yoghurt", "kefir", "vasetti"],                            "Yogurt"),
+ ("Marmellata",     ["marmellata", "confettura", "confetture", "fiordifrutta"],           "Marmellata"),
+ ("Cioccolato",     ["cioccolato", "cioccolata", "tavoletta", "nutella", "cacao"],        "Cioccolato"),
 ]
