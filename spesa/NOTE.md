@@ -186,6 +186,37 @@ da rimpiazzare con due commenti lontani cancella tutto quello che ci sta in
 mezzo. È successo. Meglio sostituzioni corte e mirate, e comunque `prova.js`
 dopo.
 
+### Le due app si pestavano i piedi: `id` nel manifest
+
+Il 2026-09-04 Manlio ha detto che toccando l'icona della **Palestra** gli partiva
+la **Spesa**, che Chrome gli diceva «Palestra è già installata» quando provava a
+installare la Spesa, e che la Palestra non la trovava più fra le applicazioni.
+
+Causa: il manifest della Palestra dichiara `"scope": "./"`, cioè **tutto quello
+che sta sotto `/palestra/`** — e la Spesa ci sta dentro. Nessuno dei due manifest
+dichiarava un `id`, quindi il browser se lo ricavava da solo e trattava le due
+pagine come la stessa applicazione.
+
+Rimedio: `"id"` esplicito in tutti e due, **uguale a quello che il browser già
+calcolava** (`/palestra/index.html` e `/palestra/spesa/`), così non nasce
+un'applicazione nuova e non si perde quella installata; si mette solo per
+iscritto un'identità che prima era implicita e ambigua.
+
+**Lo scope resta sovrapposto e non si può evitare**: GitHub Pages pubblica tutto
+sotto `/palestra/`, e la Spesa deve stare lì dentro. Fra due scope che
+combaciano vince il più specifico, quindi `/palestra/spesa/` è della Spesa. È
+l'`id` a tenerle separate come applicazioni.
+
+**Se un domani si aggiunge una terza app in una cartella di qui, dalle subito il
+suo `id`**, o si ricasca in questo.
+
+Attenzione: il manifest sta nella lista dei file messi in cache da tutti e due i
+service worker. Cambiandolo **va alzato il numero di cache di entrambi**, o i
+telefoni continuano a servirsi la versione vecchia.
+
+Quello che questa correzione **non** può fare è sistemare un telefono dove
+l'installazione sbagliata c'è già: lì bisogna disinstallare e reinstallare.
+
 ### Il service worker della Spesa è obbligatorio
 
 `spesa/sw.js` non è un lusso. Quello della Palestra sta alla radice, il suo
