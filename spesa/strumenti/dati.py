@@ -33,6 +33,10 @@ UNITA = {
  'Carta igienica': ('al rotolo',    'rotoli'),
  'Detersivo':      ('a lavaggio',   'lavaggi'),
  'Suino':          ('al kg',        'kg'),
+ 'Biscotti':       ('al kg',        'kg'),
+ 'Yogurt':         ('al kg',        'kg'),
+ 'Marmellata':     ('al kg',        'kg'),
+ 'Cioccolato':     ('al kg',        'kg'),
 }
 
 # chiave, insegna, periodo leggibile, nome del PDF, ULTIMO GIORNO DI VALIDITA
@@ -145,6 +149,45 @@ PRODOTTI = [
  ("Suino","Ipercoop","ipercoop","Salumi","Salame Negronetto – Negroni","220 g",0.220,3.48,4,V,"Sottocosto −38%, prima 5,69."),
  ("Suino","Bennet","bennet","Salumi","Prosciutto crudo o cotto di alta qualità – Citterio","240 g (3 × 80 g)",0.240,4.99,8,V,"−50% con la tessera Bennet Club, prima 9,99."),
  ("Suino","Ipercoop","ipercoop_extra","Gastronomia","Carne salada del Trentino per carpaccio","100 g",0.100,3.36,14,V,"PREZZO SOCI (−25%). Senza tessera 4,49, cioè 44,90 al kg."),
+ # ------------------------------- BISCOTTI (kg) -------------------------------
+ ("Biscotti","Carrefour Iper","carriper04","Colazione","Biscotti Atene – Doria","500 g",0.500,0.99,21,V,"−40% con la tessera SpesAmica Payback, prima 1,65."),
+ ("Biscotti","Eurospin","eurospin","Colazione","Frollini con panna","700 g",0.700,1.39,3,V,"Prima 1,89. Senza olio di palma."),
+ ("Biscotti","Eurospin","eurospin","Colazione","Frollini all'uovo","700 g",0.700,1.49,3,V,"Prima 1,99."),
+ ("Biscotti","Eurospin","eurospin","Colazione","Biscotti Digestive con avena e cioccolato","425 g",0.425,1.19,3,V,"Prima 1,59."),
+ ("Biscotti","Ipercoop","ipercoop","Dispensa","Gocciole Chocolate – Pavesi","500 g",0.500,1.59,2,V,"Sottocosto −46%, prima 2,99. Max 6 confezioni."),
+ ("Biscotti","Carrefour Iper","carriper04","Colazione","Plumcake Classico – Mulino Bianco","330 g",0.330,1.39,21,V,"−30%, prima 1,99."),
+ ("Biscotti","Carrefour Iper","carriper04","Colazione","Frollini gusti assortiti – Colussi","273 g",0.273,1.19,21,V,"−40% con la tessera SpesAmica Payback, prima 1,99."),
+ ("Biscotti","Ipercoop","ipercoop","Dispensa","Pan Gocciogli – Mulino Bianco","336 g (8 pezzi)",0.336,1.59,2,V,"Sottocosto −44%, prima 2,89."),
+ ("Biscotti","Lidl","lidl","Colazione","Pangoccioli – Mulino Bianco","336 g (8 pezzi)",0.336,2.15,24,V,"−25%, prima 2,89. Stesso prodotto che l'Ipercoop fa a 1,59."),
+ ("Biscotti","Ipercoop","ipercoop_extra","Dispensa","Biscotti Oro Ciok – Saiwa","250 g",0.250,1.79,6,V,"−40%, prima 2,99."),
+ ("Biscotti","Ipercoop","ipercoop_extra","Dispensa","Millefoglie d'Italia – Vicenzi","125 g",0.125,0.93,6,V,"−25%, prima 1,25."),
+ ("Biscotti","Ipercoop","ipercoop_extra","Dispensa","Pavesini – Pavesi","200 g",0.200,1.54,6,V,"−40%, prima 2,57."),
+ ("Biscotti","Carrefour Iper","carriper04","Colazione","Nutella Biscuits","304 g",0.304,2.69,21,V,"−22% con la tessera SpesAmica Payback, prima 3,46."),
+ # ------------------------------- YOGURT (kg) -------------------------------
+ ("Yogurt","Ipercoop","ipercoop","Freschi","Yogurt intero gusti vari – Müller","1 kg (8 × 125 g)",1,1.99,4,V,"Sottocosto −55%, prima 4,49. Max 6 confezioni."),
+ ("Yogurt","Carrefour Iper","carriper04","Freschi","Yogurt Fieno Fiordilatte","1 kg",1,2.19,21,V,"−35%, prima 3,39."),
+ ("Yogurt","Carrefour Iper","carriper04","Freschi","Kefir bianco naturale – Sveltesse","500 g",0.500,1.29,16,V,"−31%, prima 1,89."),
+ ("Yogurt","Carrefour Iper","carriper04","Freschi","Yogurt intero alle fragole – Yomo","250 g (2 × 125 g)",0.250,0.79,16,V,"−43%, prima 1,39."),
+ ("Yogurt","Carrefour Iper","carriper04","Freschi","Yogurt 0% grassi – Activia","500 g (4 × 125 g)",0.500,1.99,16,V,"−28% con la tessera SpesAmica Payback, prima 2,77."),
+ ("Yogurt","Carrefour Iper","carriper04","Freschi","Muu Muu al cioccolato – Cameo","460 g (4 pezzi)",0.460,1.99,16,V,"−39%, prima 3,29."),
+ ("Yogurt","Carrefour Iper","carriper04","Freschi","Müller Mix gusti assortiti","140 g",0.140,0.69,16,V,"−44%, prima 1,25."),
+ ("Yogurt","Bennet","bennet","Freschi","Kefir – Milk","150 g",0.150,0.83,8,V,"−30%, prima 1,19."),
+ ("Yogurt","Carrefour Iper","carriper04","Freschi","Kefir gusti assortiti – Milk","160 g",0.160,0.99,16,V,"−31%, prima 1,45."),
+ ("Yogurt","Carrefour Iper","carriper04","Freschi","Kefir bianco senza lattosio – Polenghi","500 ml",0.500,0.79,16,V,"−20%, prima 0,99. È da bere: mezzo litro pesa circa mezzo chilo, il confronto regge."),
+ # ------------------------------- MARMELLATA (kg) -------------------------------
+ ("Marmellata","Eurospin","eurospin","Colazione","Confettura extra albicocca o ciliegia","370 g",0.370,1.29,3,V,"Prima 1,69."),
+ ("Marmellata","Carrefour Iper","carriper04","Colazione","Confetture gusti assortiti – Terre d'Italia","340 g",0.340,2.69,21,V,"−21% con la tessera SpesAmica Payback, prima 3,41."),
+ ("Marmellata","Ipercoop","ipercoop_extra","Colazione","Confetture Fiordifrutta – Rigoni di Asiago","330 g",0.330,3.45,6,V,"PREZZO SOCI. Bio, 100% da frutta."),
+ ("Marmellata","Carrefour Iper","carriper04","Colazione","Confettura Zero Residui – Zuegg","230 g",0.230,2.49,21,V,"−22% con la tessera SpesAmica Payback, prima 3,20."),
+ # ------------------------------- CIOCCOLATO (kg) -------------------------------
+ ("Cioccolato","Eurospin","eurospin","Colazione","Crema alla nocciola","750 g",0.750,2.79,3,V,"Prima 3,59. È una crema da spalmare, non una tavoletta."),
+ ("Cioccolato","Ipercoop","ipercoop","Dispensa","Nutella – Ferrero","750 g",0.750,4.99,2,V,"Sottocosto −25%, prima 6,68. Crema da spalmare."),
+ ("Cioccolato","Carrefour Iper","carriper04","Colazione","Nutella – Ferrero","950 g",0.950,6.89,21,V,"Crema da spalmare. Il barattolo grande."),
+ ("Cioccolato","Lidl","lidl","Colazione","Gallette di riso al cioccolato – Sondey","100 g",0.100,1.29,24,V,"−23% con la carta Lidl Plus, prima 1,69."),
+ ("Cioccolato","Lidl","lidl","Colazione","Bastoncini ricoperti di cioccolato – Sondey","90 g",0.090,1.29,24,V,"−23% con la carta Lidl Plus, prima 1,69. Fondente o al latte."),
+ ("Cioccolato","Bennet","bennet","Dispensa","KitKat – Nestlé","124 g (conf. da 3)",0.124,2.29,12,V,"−30%, prima 3,28."),
+ ("Cioccolato","Ipercoop","ipercoop_extra","Dispensa","Mini Tower Movie Night – Ritter Sport","150 g",0.150,2.89,6,V,"PREZZO SOCI."),
+ ("Cioccolato","Bennet","bennet","Dispensa","Tavoletta cioccolato nero fondente extra – Perugina","85 g",0.085,1.98,12,V,"−25%, prima 2,65. Tavoletta vera, non crema."),
 ]
 
 PRODOTTI.sort(key=lambda p: (list(UNITA).index(p[0]), p[7] / p[6]))

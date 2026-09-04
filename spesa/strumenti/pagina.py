@@ -58,7 +58,7 @@ if os.path.exists(lista_viva):
 
 DATI = json.dumps(dict(offerte=offerte, pagine=pagine, volantini=volantini,
                        partenza=partenza, unita={k: v[0] for k, v in UNITA.items()},
-                       letto='2 settembre 2026'),
+                       letto='4 settembre 2026'),
                   ensure_ascii=False, separators=(',', ':'))
 LISTA0 = json.dumps(partenza, ensure_ascii=False, separators=(',', ':'))
 
