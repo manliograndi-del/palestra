@@ -45,13 +45,19 @@ i pesi di fila in mezzo, 15' di cyclette in chiusura. La bici ellittica che stav
 metà seduta è uscita.
 
 **Il programma** — Tapis roulant 15' (aumenta gradualmente la pendenza) · Abductor 4×20 ·
-Adductor 3×12 · Leg press 4×10 · Chest press 3×12 · Low row 4×15 · Chest incline 3×10 ·
-Upper back 3×10 · Vertical traction 4×12 · Leg extension 3×10 · Leg curl 3×12 ·
+Adductor 3×12 · Chest press 3×12 · Low row 4×15 · Chest incline 3×10 · Upper back 3×10 ·
+Vertical traction 4×12 · Leg curl 3×12 · Leg press 4×10 · Leg extension 3×10 ·
 Cyclette 15'. **Totale 34 serie.**
 
 L'ordine originale della chinesiologa erano due giorni distinti, con i blocchi aerobici
 alternati ai pesi. Esercizi, serie e ripetizioni sono i suoi e non sono stati toccati:
 è cambiato solo come sono distribuiti.
+
+**Leg press e Leg extension in fondo ai pesi** (chiesto il 2026-09-08), dopo Leg curl
+invece che subito dopo Adductor: restano nello stesso ordine reciproco fra loro, si
+sposta solo dove cade il blocco gambe rispetto al resto. `SCHEDA_V` è salito a 4, con
+`RINUMERA_4` a fare da mappa. Tapis roulant e Cyclette restano agli estremi, quindi
+non compaiono in quella mappa: nessun riordino le ha mai toccate.
 
 Se Manlio dice che la scheda è cambiata, modifica `SCHEDA` e ricontrolla i totali.
 
@@ -95,10 +101,10 @@ Se Manlio dice che la scheda è cambiata, modifica `SCHEDA` e ricontrolla i tota
 Se riordini gli esercizi dentro `SCHEDA`, **le sedute passate diventano illeggibili**:
 gli indici non corrispondono più. Se devi riordinare, scrivi anche la migrazione.
 
-I riordini del 2026-08-18 ne hanno una, **a catena**: `SCHEDA_V` (3), `RINUMERA_2`,
-`RINUMERA_3`, `rinumera()` e `migraSedute()`. Chi è fermo alla versione 1 passa dalla 2
-e arriva alla 3 in un colpo solo. Il numero raggiunto resta in `palestra.config` come
-`schedaV`.
+I riordini del 2026-08-18 e del 2026-09-08 ne hanno una, **a catena**: `SCHEDA_V` (4),
+`RINUMERA_2`, `RINUMERA_3`, `RINUMERA_4`, `rinumera()` e `migraSedute()`. Chi è fermo
+alla versione 1 passa dalla 2, poi dalla 3 e arriva alla 4 in un colpo solo, nella
+stessa chiamata. Il numero raggiunto resta in `palestra.config` come `schedaV`.
 **Attenzione:** quel numero va scritto anche da `salvaCfg()` e da `ripristina()`. Se lo
 dimentichi, la migrazione riparte al prossimo avvio e sposta le spunte una seconda
 volta, rovinando le sedute. Un backup senza `schedaV` è di prima dei riordini e va
@@ -277,15 +283,28 @@ seduta scritta dentro (`RemoteActivityHelper` di Wear OS, che apre una URL sul
 telefono **senza bisogno di nessuna app installata sul telefono**). È il motivo per
 cui il collegamento va in un senso solo: l'orologio racconta, il telefono decide.
 
-    #orologio=2;2026-08-24;3-0,3-1,4-0;0,11;3:60,4:32.5
+    #orologio=3;2026-08-24;3-0,3-1,4-0;0,11;3:60,4:32.5
     versione ; data ; serie ; cardio ; chili per esercizio
-La versione 1 (senza chili) si accetta ancora; la 2 è quella dell'app da polso
-dal 2026-08-26.
 
 Le serie usano **le stesse chiavi di qui** (`indice esercizio - numero serie`),
 quindi l'app da polso deve avere **la stessa scheda nello stesso ordine**. Se
-riordini `SCHEDA`, va rifatta anche di là: la versione in testa (`OROLOGIO_V`) serve
-ad accorgersene invece di registrare spunte a caso.
+riordini `SCHEDA`, va rifatta anche di là e va alzato `OROLOGIO_V` da tutte e
+due le parti.
+
+**Dal 2026-09-08 si accetta solo la versione esatta**, non più "fino a
+`OROLOGIO_V`". Fino ad allora un bump serviva solo ad aggiungere un campo (i
+chili, fra la 1 e la 2) senza toccare gli indici, quindi accettare anche le
+versioni più vecchie era innocuo. Il riordino di quel giorno — Leg press e Leg
+extension spostate, scambiando posto con altri esercizi dello stesso tipo
+"serie" — ha reso il caso diverso: un orologio rimasto alla versione 2 manda
+indici che *esistono ancora* nella scheda nuova ma *puntano a un altro
+esercizio*, e i controlli di `leggiOrologio()` (tipo giusto, numero di serie in
+range) non se ne accorgono perché tecnicamente sono tutti validi. Restringere
+al match esatto è l'unico modo per far apparire "l'app dell'orologio è di una
+versione diversa, aggiornala" invece di spuntare in silenzio l'esercizio
+sbagliato. **Ogni volta che riordini `SCHEDA` scambiando fra loro due esercizi
+dello stesso tipo, bump di `OROLOGIO_V` è obbligatorio**, non solo quando cambi
+il formato del messaggio.
 
 Regole decise con lui:
 - la seduta del polso **sostituisce** quella del telefono, con un riquadro di
@@ -328,6 +347,13 @@ Palestra sul telefono.
   carichi, una volta: le sedute continuano ad andare nel senso opposto.
   Manlio l'ha chiesto vedendo i trattini: "non riesce a caricare i chili
   dell'ultima volta". Il − e + resta per i ritocchi.
+  **Questo canale non è versionato**, a differenza del messaggio di ritorno.
+  Un riordino di `SCHEDA` gli fa lo stesso scherzo — un orologio non
+  aggiornato può ricevere il peso giusto sull'esercizio sbagliato — ma qui il
+  danno è più piccolo: è solo un numero già scritto che lui vede e corregge
+  con − e +, non una spunta che si registra da sola. Non gli ho messo una
+  versione per questo; se un giorno il danno sale (per esempio se i chili
+  cominciassero a scrivere qualcosa da soli), va aggiunta anche qui.
 - Sulla schermata finale c'è **"Azzera la seduta"** con doppia conferma (chiesto il
   2026-08-26): azzera spunte e cardio, **non i chili**. E il tocco a vuoto su quella
   schermata non fa niente: manda solo il tasto.

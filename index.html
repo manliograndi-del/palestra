@@ -191,23 +191,24 @@ var SCHEDA = {
     {n:"Tapis roulant", t:"cardio", min:15, nota:"Aumenta gradualmente la pendenza"},
     {n:"Abductor", t:"serie", set:4, rip:20, rec:60},
     {n:"Adductor", t:"serie", set:3, rip:12, rec:60},
-    {n:"Leg press", t:"serie", set:4, rip:10, rec:60},
     {n:"Chest press", t:"serie", set:3, rip:12, rec:60},
     {n:"Low row", t:"serie", set:4, rip:15, rec:60},
     {n:"Chest incline", t:"serie", set:3, rip:10, rec:60},
     {n:"Upper back", t:"serie", set:3, rip:10, rec:60},
     {n:"Vertical traction", t:"serie", set:4, rip:12, rec:60},
-    {n:"Leg extension", t:"serie", set:3, rip:10, rec:60},
     {n:"Leg curl", t:"serie", set:3, rip:12, rec:60},
+    {n:"Leg press", t:"serie", set:4, rip:10, rec:60},
+    {n:"Leg extension", t:"serie", set:3, rip:10, rec:60},
     {n:"Cyclette", t:"cardio", min:15}
   ]}
 };
 
 /* Le sedute salvate puntano agli esercizi per posizione. A ogni riordino le
    posizioni cambiano, quindi si rinumerano una volta sola per versione, in
-   catena: chi è fermo alla 1 passa dalla 2 e arriva alla 3. Le posizioni che
-   mancano sono esercizi usciti dalla scheda: quelle spunte si perdono. */
-var SCHEDA_V=3;
+   catena: chi è fermo alla 1 passa dalla 2, poi dalla 3 e arriva alla 4. Le
+   posizioni che mancano sono esercizi usciti dalla scheda: quelle spunte si
+   perdono. */
+var SCHEDA_V=4;
 var RINUMERA_2={                             /* dalla scheda originale a quella riordinata */
   1:{0:0, 1:1, 2:2, 3:3, 5:4, 6:5, 7:6},     /* 4 era la bici ellittica */
   2:{1:1, 2:2, 3:3, 5:4, 6:5, 7:0}           /* 0 la cyclette iniziale, 4 la bici ellittica,
@@ -216,6 +217,12 @@ var RINUMERA_2={                             /* dalla scheda originale a quella 
 var RINUMERA_3={                             /* dai due giorni al programma unico */
   1:{0:0, 1:1, 2:2, 3:3, 4:4, 5:5, 6:11},
   2:{0:0, 1:6, 2:7, 3:8, 4:9, 5:10, 6:11}
+};
+/* Leg press e Leg extension spostati in fondo ai pesi, chiesto il 2026-09-08:
+   restano nello stesso ordine reciproco, solo dopo Leg curl invece che prima.
+   Tapis roulant (0) e Cyclette (11) non si muovono, quindi qui non compaiono. */
+var RINUMERA_4={
+  1:{0:0, 1:1, 2:2, 3:9, 4:3, 5:4, 6:5, 7:6, 8:7, 9:10, 10:8, 11:11}
 };
 
 var K_CFG="palestra.config", K_IDX="palestra.indice", K_S="palestra.s.";
@@ -367,6 +374,7 @@ function migraSedute(){
     for(var d in idx){ idx[d].giorno=1; idx[d].tot=34; }
     scrivi(K_IDX,idx);
   }
+  if(S.schedaV<4){ rinumera(RINUMERA_4,false); S.schedaV=4; }
   salvaCfg();
 }
 
@@ -577,22 +585,26 @@ window.addEventListener("hashchange",function(){
    solo: l'orologio racconta, il telefono decide.
 
    Forma del messaggio, dopo il cancelletto:
-     orologio=2;2026-08-24;3-0,3-1,4-0;0,11;3:60,4:32.5
+     orologio=3;2026-08-24;3-0,3-1,4-0;0,11;3:60,4:32.5
      versione ; data ; serie spuntate ; cardio fatti ; chili per esercizio
-   La versione 1 non aveva i chili e si accetta ancora: dalla 2 l'orologio li
-   manda lui, regolati con − e + sul polso, e sono quelli che contano.
    Le serie usano le stesse chiavi di qui ("indice esercizio - numero serie"),
    quindi l'app da polso deve avere **la stessa scheda nello stesso ordine**.
-   Se un giorno riordini SCHEDA, va rifatta anche di là: la versione in testa
-   serve a accorgersene invece di registrare spunte a caso. */
-var OROLOGIO_V=2;
+   Fino alla versione 2 si accettavano anche le versioni più vecchie, perché
+   un bump serviva solo ad aggiungere un campo (i chili) senza toccare gli
+   indici. **Dal 2026-09-08 non più**: uno scambio di posto fra due esercizi
+   dello stesso tipo (Leg press e Leg extension spostate in fondo) lascerebbe
+   un orologio non aggiornato libero di spuntare la serie giusta sull'esercizio
+   sbagliato senza che nessun controllo se ne accorga — gli indici restano
+   validi, cambia solo cosa significano. Per questo ora si accetta **solo** la
+   versione esatta: chi resta indietro vede "aggiornala", non spunte silenziose. */
+var OROLOGIO_V=3;
 function leggiOrologio(){
   var h=String(location.hash||"");
   var i=h.indexOf("orologio=");
   if(i<0) return null;
   var pezzi=h.slice(i+9).split(";");
   var ver=Number(pezzi[0]);
-  if(!(ver>=1&&ver<=OROLOGIO_V)) return {errore:"versione"};
+  if(ver!==OROLOGIO_V) return {errore:"versione"};
   var data=pezzi[1]||"";
   if(!/^\d{4}-\d{2}-\d{2}$/.test(data)) return {errore:"formato"};
   var es=SCHEDA[1].es;

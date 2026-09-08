@@ -51,10 +51,15 @@ import java.util.concurrent.Executors
  * ATTENZIONE: gli indici degli esercizi devono restare **identici** a quelli
  * della SCHEDA dentro index.html della Palestra, perché il messaggio usa le
  * stesse chiavi "indice-serie". Se di là riordinano, qui va rifatto e va alzato
- * OROLOGIO_V da tutte e due le parti.
+ * OROLOGIO_V da tutte e due le parti — **anche quando l'ordine dei campi nel
+ * messaggio non cambia**: uno scambio fra due esercizi dello stesso tipo (dal
+ * 2026-09-08, Leg press e Leg extension spostate in fondo ai pesi) lascia
+ * indici che restano tutti validi ma puntano a un altro esercizio, e un
+ * telefono aggiornato non avrebbe modo di accorgersene senza il controllo
+ * sulla versione.
  */
 
-private const val OROLOGIO_V = 2
+private const val OROLOGIO_V = 3
 private const val INDIRIZZO = "https://manliograndi-del.github.io/palestra/"
 private const val RECUPERO_SEC = 60L
 
@@ -66,14 +71,14 @@ private val SCHEDA = listOf(
     Es("Tapis roulant", 0, 0, 15),
     Es("Abductor", 4, 20),
     Es("Adductor", 3, 12),
-    Es("Leg press", 4, 10),
     Es("Chest press", 3, 12),
     Es("Low row", 4, 15),
     Es("Chest incline", 3, 10),
     Es("Upper back", 3, 10),
     Es("Vertical traction", 4, 12),
-    Es("Leg extension", 3, 10),
     Es("Leg curl", 3, 12),
+    Es("Leg press", 4, 10),
+    Es("Leg extension", 3, 10),
     Es("Cyclette", 0, 0, 15)
 )
 
