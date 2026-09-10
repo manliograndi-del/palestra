@@ -1139,13 +1139,21 @@ function caricaGsi(){
 function erroreDrive(tipo,stato){ var e=new Error(tipo); e.tipo=tipo; e.stato=stato||0; return e; }
 
 /* chiede il permesso: "interattivo" apre la finestra di Google, altrimenti
-   prova in silenzio e fallisce senza disturbare */
+   prova in silenzio e fallisce senza disturbare.
+   **L'account è sempre lo stesso**, quindi glielo si dice (`hint`): dal
+   2026-09-10, col telefono che ha due account Google, senza questo Google
+   fermava ogni volta a chiedere quale usare. Con l'account giusto già
+   presente sul telefono, il suggerimento lo salta e va dritto lì — non è
+   un blocco, è solo l'ultima cosa scelta che smette di essere chiesta.
+   Se un giorno cambia l'account con cui salva su Drive, questo va cambiato
+   insieme. */
+var GOOGLE_ACCOUNT="manlio.grandi@gmail.com";
 function permessoDrive(interattivo){
   if(GTOK) return Promise.resolve(GTOK);
   return caricaGsi().then(function(){
     if(!clienteTok){
       clienteTok=google.accounts.oauth2.initTokenClient({
-        client_id:GOOGLE_ID, scope:GOOGLE_AMBITO,
+        client_id:GOOGLE_ID, scope:GOOGLE_AMBITO, hint:GOOGLE_ACCOUNT,
         callback:function(r){
           var a=attesaTok; attesaTok=null;
           if(r&&r.access_token){ GTOK=r.access_token; if(a) a.ok(GTOK); }
@@ -1156,7 +1164,7 @@ function permessoDrive(interattivo){
     }
     return new Promise(function(ok,no){
       attesaTok={ok:ok,no:no};
-      try{ clienteTok.requestAccessToken({prompt:interattivo?"consent":""}); }
+      try{ clienteTok.requestAccessToken({prompt:interattivo?"consent":"",hint:GOOGLE_ACCOUNT}); }
       catch(e){ attesaTok=null; no(erroreDrive("permesso")); }
     });
   });

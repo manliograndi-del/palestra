@@ -271,6 +271,16 @@ In `sw.js` c'è una riga che fa **ignorare al service worker tutto ciò che non 
 nostro indirizzo**: senza, una chiamata a Google andata storta si prenderebbe in cambio
 la pagina dell'app.
 
+**`GOOGLE_ACCOUNT` dice a Google quale account usare** (`hint`, su
+`initTokenClient` e ripetuto su `requestAccessToken`), dal 2026-09-10: quel
+giorno Manlio ha attivato un secondo account Google sul telefono, e da lì in
+poi Google fermava ogni volta a chiedere quale usare invece di andare dritto.
+L'account è sempre lo stesso, `manlio.grandi@gmail.com`: non c'è motivo di
+chiederlo ogni volta, quindi ora non lo chiede più — se quell'account è
+presente sul telefono, la scelta si salta. **Se un giorno cambia l'account con
+cui salva su Drive**, questa costante va cambiata (qui e nel Diario insieme,
+sono due copie identiche dello stesso valore).
+
 ## La seduta che arriva dall'orologio
 
 Disegnata insieme a lui il 2026-08-24 e approvata schermata per schermata.
