@@ -26,7 +26,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # Di suo questa azione installa anche il vecchio pacchetto "tools", che
+      # Google ha ritirato: dal 2026-09-15 non esiste più nel suo archivio e la
+      # compilazione si fermava qui, prima ancora di toccare il codice. Gli
+      # diciamo noi cosa serve — "tools" non è mai servito a niente.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
 
       - name: Pezzi dell'SDK
         run: sdkmanager --install "platforms;android-34" "build-tools;34.0.0"
