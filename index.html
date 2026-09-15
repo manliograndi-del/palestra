@@ -189,14 +189,14 @@ input{font-family:inherit}
 var SCHEDA = {
   1: { nome:"Allenamento", es:[
     {n:"Tapis roulant", t:"cardio", min:15, nota:"Aumenta gradualmente la pendenza"},
-    {n:"Abductor", t:"serie", set:4, rip:20, rec:60},
     {n:"Adductor", t:"serie", set:3, rip:12, rec:60},
+    {n:"Leg curl", t:"serie", set:3, rip:12, rec:60},
+    {n:"Abductor", t:"serie", set:4, rip:20, rec:60},
     {n:"Chest press", t:"serie", set:3, rip:12, rec:60},
     {n:"Low row", t:"serie", set:4, rip:15, rec:60},
     {n:"Chest incline", t:"serie", set:3, rip:10, rec:60},
     {n:"Upper back", t:"serie", set:3, rip:10, rec:60},
     {n:"Vertical traction", t:"serie", set:4, rip:12, rec:60},
-    {n:"Leg curl", t:"serie", set:3, rip:12, rec:60},
     {n:"Leg press", t:"serie", set:4, rip:10, rec:60},
     {n:"Leg extension", t:"serie", set:3, rip:10, rec:60},
     {n:"Cyclette", t:"cardio", min:15}
@@ -205,10 +205,10 @@ var SCHEDA = {
 
 /* Le sedute salvate puntano agli esercizi per posizione. A ogni riordino le
    posizioni cambiano, quindi si rinumerano una volta sola per versione, in
-   catena: chi è fermo alla 1 passa dalla 2, poi dalla 3 e arriva alla 4. Le
-   posizioni che mancano sono esercizi usciti dalla scheda: quelle spunte si
-   perdono. */
-var SCHEDA_V=4;
+   catena: chi è fermo alla 1 passa dalla 2, poi dalla 3, poi dalla 4 e arriva
+   alla 5. Le posizioni che mancano sono esercizi usciti dalla scheda: quelle
+   spunte si perdono. */
+var SCHEDA_V=5;
 var RINUMERA_2={                             /* dalla scheda originale a quella riordinata */
   1:{0:0, 1:1, 2:2, 3:3, 5:4, 6:5, 7:6},     /* 4 era la bici ellittica */
   2:{1:1, 2:2, 3:3, 5:4, 6:5, 7:0}           /* 0 la cyclette iniziale, 4 la bici ellittica,
@@ -223,6 +223,13 @@ var RINUMERA_3={                             /* dai due giorni al programma unic
    Tapis roulant (0) e Cyclette (11) non si muovono, quindi qui non compaiono. */
 var RINUMERA_4={
   1:{0:0, 1:1, 2:2, 3:9, 4:3, 5:4, 6:5, 7:6, 8:7, 9:10, 10:8, 11:11}
+};
+/* Adductor, Leg curl e Abductor in testa ai pesi, chiesto il 2026-09-15:
+   prima erano Abductor, Adductor in apertura e Leg curl in mezzo al blocco
+   gambe. Tutto il resto scala di uno e resta nello stesso ordine reciproco.
+   Tapis roulant (0) e Cyclette (11) non si muovono, come sempre. */
+var RINUMERA_5={
+  1:{0:0, 1:3, 2:1, 3:4, 4:5, 5:6, 6:7, 7:8, 8:2, 9:9, 10:10, 11:11}
 };
 
 var K_CFG="palestra.config", K_IDX="palestra.indice", K_S="palestra.s.";
@@ -375,6 +382,7 @@ function migraSedute(){
     scrivi(K_IDX,idx);
   }
   if(S.schedaV<4){ rinumera(RINUMERA_4,false); S.schedaV=4; }
+  if(S.schedaV<5){ rinumera(RINUMERA_5,false); S.schedaV=5; }
   salvaCfg();
 }
 
@@ -585,7 +593,7 @@ window.addEventListener("hashchange",function(){
    solo: l'orologio racconta, il telefono decide.
 
    Forma del messaggio, dopo il cancelletto:
-     orologio=3;2026-08-24;3-0,3-1,4-0;0,11;3:60,4:32.5
+     orologio=4;2026-08-24;3-0,3-1,4-0;0,11;3:60,4:32.5
      versione ; data ; serie spuntate ; cardio fatti ; chili per esercizio
    Le serie usano le stesse chiavi di qui ("indice esercizio - numero serie"),
    quindi l'app da polso deve avere **la stessa scheda nello stesso ordine**.
@@ -596,8 +604,10 @@ window.addEventListener("hashchange",function(){
    un orologio non aggiornato libero di spuntare la serie giusta sull'esercizio
    sbagliato senza che nessun controllo se ne accorga — gli indici restano
    validi, cambia solo cosa significano. Per questo ora si accetta **solo** la
-   versione esatta: chi resta indietro vede "aggiornala", non spunte silenziose. */
-var OROLOGIO_V=3;
+   versione esatta: chi resta indietro vede "aggiornala", non spunte silenziose.
+   Il riordino del 2026-09-15 (Adductor, Leg curl e Abductor in testa ai pesi)
+   è lo stesso caso: versione 4. */
+var OROLOGIO_V=4;
 function leggiOrologio(){
   var h=String(location.hash||"");
   var i=h.indexOf("orologio=");

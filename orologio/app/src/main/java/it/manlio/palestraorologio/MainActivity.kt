@@ -53,13 +53,18 @@ import java.util.concurrent.Executors
  * stesse chiavi "indice-serie". Se di là riordinano, qui va rifatto e va alzato
  * OROLOGIO_V da tutte e due le parti — **anche quando l'ordine dei campi nel
  * messaggio non cambia**: uno scambio fra due esercizi dello stesso tipo (dal
- * 2026-09-08, Leg press e Leg extension spostate in fondo ai pesi) lascia
- * indici che restano tutti validi ma puntano a un altro esercizio, e un
- * telefono aggiornato non avrebbe modo di accorgersene senza il controllo
- * sulla versione.
+ * 2026-09-08, Leg press e Leg extension spostate in fondo ai pesi; dal
+ * 2026-09-15, Adductor, Leg curl e Abductor in testa) lascia indici che
+ * restano tutti validi ma puntano a un altro esercizio, e un telefono
+ * aggiornato non avrebbe modo di accorgersene senza il controllo sulla
+ * versione.
+ *
+ * I chili qui stanno in "kg_<indice>": un riordino li lascia attaccati alla
+ * posizione, non all'esercizio. Dopo un aggiornamento come questo si rimandano
+ * dal telefono con "Manda i carichi all'app", oppure si ritoccano con - e +.
  */
 
-private const val OROLOGIO_V = 3
+private const val OROLOGIO_V = 4
 private const val INDIRIZZO = "https://manliograndi-del.github.io/palestra/"
 private const val RECUPERO_SEC = 60L
 
@@ -69,14 +74,14 @@ private class Es(val nome: String, val serie: Int, val rip: Int, val minuti: Int
 
 private val SCHEDA = listOf(
     Es("Tapis roulant", 0, 0, 15),
-    Es("Abductor", 4, 20),
     Es("Adductor", 3, 12),
+    Es("Leg curl", 3, 12),
+    Es("Abductor", 4, 20),
     Es("Chest press", 3, 12),
     Es("Low row", 4, 15),
     Es("Chest incline", 3, 10),
     Es("Upper back", 3, 10),
     Es("Vertical traction", 4, 12),
-    Es("Leg curl", 3, 12),
     Es("Leg press", 4, 10),
     Es("Leg extension", 3, 10),
     Es("Cyclette", 0, 0, 15)

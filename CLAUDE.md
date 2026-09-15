@@ -44,9 +44,9 @@ Struttura chiesta da lui: una sola attività aerobica in apertura (la camminata)
 i pesi di fila in mezzo, 15' di cyclette in chiusura. La bici ellittica che stava a
 metà seduta è uscita.
 
-**Il programma** — Tapis roulant 15' (aumenta gradualmente la pendenza) · Abductor 4×20 ·
-Adductor 3×12 · Chest press 3×12 · Low row 4×15 · Chest incline 3×10 · Upper back 3×10 ·
-Vertical traction 4×12 · Leg curl 3×12 · Leg press 4×10 · Leg extension 3×10 ·
+**Il programma** — Tapis roulant 15' (aumenta gradualmente la pendenza) · Adductor 3×12 ·
+Leg curl 3×12 · Abductor 4×20 · Chest press 3×12 · Low row 4×15 · Chest incline 3×10 ·
+Upper back 3×10 · Vertical traction 4×12 · Leg press 4×10 · Leg extension 3×10 ·
 Cyclette 15'. **Totale 34 serie.**
 
 L'ordine originale della chinesiologa erano due giorni distinti, con i blocchi aerobici
@@ -58,6 +58,13 @@ invece che subito dopo Adductor: restano nello stesso ordine reciproco fra loro,
 sposta solo dove cade il blocco gambe rispetto al resto. `SCHEDA_V` è salito a 4, con
 `RINUMERA_4` a fare da mappa. Tapis roulant e Cyclette restano agli estremi, quindi
 non compaiono in quella mappa: nessun riordino le ha mai toccate.
+
+**Adductor, Leg curl e Abductor in testa ai pesi** (chiesto il 2026-09-15), in
+quest'ordine: prima i pesi si aprivano con Abductor e Adductor e il Leg curl stava in
+mezzo, dopo Vertical traction. Tutto il resto scala di una posizione senza cambiare
+ordine reciproco, Leg press e Leg extension restano in fondo. `SCHEDA_V` è salito a 5,
+con `RINUMERA_5`, e `OROLOGIO_V` a 4 (è uno scambio fra esercizi dello stesso tipo:
+vedi più sotto perché è obbligatorio).
 
 Se Manlio dice che la scheda è cambiata, modifica `SCHEDA` e ricontrolla i totali.
 
@@ -101,10 +108,10 @@ Se Manlio dice che la scheda è cambiata, modifica `SCHEDA` e ricontrolla i tota
 Se riordini gli esercizi dentro `SCHEDA`, **le sedute passate diventano illeggibili**:
 gli indici non corrispondono più. Se devi riordinare, scrivi anche la migrazione.
 
-I riordini del 2026-08-18 e del 2026-09-08 ne hanno una, **a catena**: `SCHEDA_V` (4),
-`RINUMERA_2`, `RINUMERA_3`, `RINUMERA_4`, `rinumera()` e `migraSedute()`. Chi è fermo
-alla versione 1 passa dalla 2, poi dalla 3 e arriva alla 4 in un colpo solo, nella
-stessa chiamata. Il numero raggiunto resta in `palestra.config` come `schedaV`.
+I riordini del 2026-08-18, del 2026-09-08 e del 2026-09-15 ne hanno una, **a catena**:
+`SCHEDA_V` (5), `RINUMERA_2`, `RINUMERA_3`, `RINUMERA_4`, `RINUMERA_5`, `rinumera()` e
+`migraSedute()`. Chi è fermo alla versione 1 passa dalla 2, poi dalla 3, poi dalla 4 e
+arriva alla 5 in un colpo solo, nella stessa chiamata. Il numero raggiunto resta in `palestra.config` come `schedaV`.
 **Attenzione:** quel numero va scritto anche da `salvaCfg()` e da `ripristina()`. Se lo
 dimentichi, la migrazione riparte al prossimo avvio e sposta le spunte una seconda
 volta, rovinando le sedute. Un backup senza `schedaV` è di prima dei riordini e va
@@ -302,7 +309,7 @@ riordini `SCHEDA`, va rifatta anche di là e va alzato `OROLOGIO_V` da tutte e
 due le parti.
 
 **Dal 2026-09-08 si accetta solo la versione esatta**, non più "fino a
-`OROLOGIO_V`". Fino ad allora un bump serviva solo ad aggiungere un campo (i
+`OROLOGIO_V`". (`OROLOGIO_V` è 4 dal riordino del 2026-09-15.) Fino ad allora un bump serviva solo ad aggiungere un campo (i
 chili, fra la 1 e la 2) senza toccare gli indici, quindi accettare anche le
 versioni più vecchie era innocuo. Il riordino di quel giorno — Leg press e Leg
 extension spostate, scambiando posto con altri esercizi dello stesso tipo
@@ -357,6 +364,11 @@ Palestra sul telefono.
   carichi, una volta: le sedute continuano ad andare nel senso opposto.
   Manlio l'ha chiesto vedendo i trattini: "non riesce a caricare i chili
   dell'ultima volta". Il − e + resta per i ritocchi.
+  Sul polso i chili stanno in `kg_<indice>`, quindi **un riordino li lascia
+  attaccati alla posizione, non all'esercizio**: dopo aver installato un APK
+  riordinato vanno rimandati dal telefono con "Manda i carichi all'app" (fatto
+  il 2026-09-15), oppure ritoccati con − e +. Sul telefono il problema non
+  esiste, lì i pesi sono salvati per nome.
   **Questo canale non è versionato**, a differenza del messaggio di ritorno.
   Un riordino di `SCHEDA` gli fa lo stesso scherzo — un orologio non
   aggiornato può ricevere il peso giusto sull'esercizio sbagliato — ma qui il
