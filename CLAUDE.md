@@ -388,6 +388,13 @@ dentro `orologio/`, e pubblica sempre allo stesso indirizzo:
 È l'unico modo di avere un APK da questa sessione. Se il file non si aggiorna, guarda
 i log dell'azione prima di dare la colpa al telefono.
 
+**Il 2026-09-15 l'azione si è rotta da sola**, senza che nessuno l'avesse toccata:
+`android-actions/setup-android` installa di suo il vecchio pacchetto `tools` dell'SDK,
+che Google ha ritirato, e si fermava con "Failed to find package 'tools'" prima ancora
+di compilare. Ora l'azione riceve `packages: 'platform-tools'` e i pezzi che servono
+davvero arrivano dal passo successivo. Se un giorno si ferma di nuovo in quel punto,
+**non è il codice Kotlin**: è un pezzo dell'SDK sparito dall'archivio di Google.
+
 ## Aspetto
 
 **Rifatto il 2026-08-18 sul linguaggio visivo di Virgin Active**, su richiesta di
