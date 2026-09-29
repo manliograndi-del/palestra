@@ -354,16 +354,20 @@ Palestra sul telefono.
 - **Lo stesso APK si installa anche sul telefono** (`uses-feature ... required="false"`).
   Sul telefono non c'è nessun polso a cui mandare la seduta, quindi apre la Palestra
   direttamente: è così che si prova tutta la catena senza orologio e senza cavi.
-- I chili sull'orologio hanno la loro copia, regolata con − e + (tenendo premuto
-  ±10, passi da 2,5). **Dal 2026-08-27 non vanno più battuti a mano la prima
-  volta**: in Impostazioni della Palestra web c'è "Manda i carichi all'app", che
+- I chili sull'orologio hanno la loro copia. **Dal 2026-09-29 sul polso si
+  leggono soltanto**: il − e il + non ci sono più, li ha fatti togliere Manlio
+  dopo la prima seduta vera ("se li devo cambiare ricambio dal telefono").
+  Erano anche loro a uscire dal bordo tondo — il + si vedeva a metà. Arrivano
+  dal telefono con "Manda i carichi all'app": in Impostazioni della Palestra web,
   apre `palestra://carichi?d=1:40,3:60,...` (stesso formato indice:chili del
   messaggio di ritorno). L'APK — registrato su quello schema nel manifesto — li
   salva e, se gira sul telefono, li **inoltra all'orologio** con
   `RemoteActivityHelper`. È l'unico canale telefono→polso, e trasporta solo i
   carichi, una volta: le sedute continuano ad andare nel senso opposto.
   Manlio l'ha chiesto vedendo i trattini: "non riesce a caricare i chili
-  dell'ultima volta". Il − e + resta per i ritocchi.
+  dell'ultima volta". **Adesso è l'unico modo di metterli**, quindi se un
+  giorno questo canale si rompe l'app da polso resta senza chili: non
+  toglierlo senza rimettere prima un modo di scriverli sul polso.
   Sul polso i chili stanno in `kg_<indice>`, quindi **un riordino li lascia
   attaccati alla posizione, non all'esercizio**: dopo aver installato un APK
   riordinato vanno rimandati dal telefono con "Manda i carichi all'app" (fatto
@@ -379,8 +383,53 @@ Palestra sul telefono.
 - Sulla schermata finale c'è **"Azzera la seduta"** con doppia conferma (chiesto il
   2026-08-26): azzera spunte e cardio, **non i chili**. E il tocco a vuoto su quella
   schermata non fa niente: manda solo il tasto.
+
+**Il 2026-09-29, dopo la prima seduta vera al polso, la ripaginazione per lo
+schermo tondo.** Il quadrante è rotondo e stringe in alto e in basso: tutto
+quello che era scritto con misure fisse finiva oltre il bordo. Le regole che
+ne restano, da non perdere al prossimo ritocco:
+- **le misure non si scrivono a mano.** La pastiglia di una serie si calcola
+  da `larghezzaUtile()` (la larghezza vera dello schermo meno 14dp per lato)
+  divisa per il numero di serie: così non esce né su un quadrante piccolo né
+  con un esercizio da 4 serie. Verificato col conto su 200dp e 223dp, le due
+  misure del Pixel Watch 3;
+- **il nome dell'esercizio si rimpicciolisce da solo** (`titolo()`, una riga
+  sola): "Vertical traction" è lungo il doppio di "Low row";
+- **le scritte si tengono il loro margine, le pastiglie no.** Il bordo della
+  colonna è stretto (14dp) perché le pastiglie stanno a metà schermo, dove il
+  tondo è largo; sono le singole scritte ad avere un margine in più, perché
+  stanno in alto e in basso dove si stringe;
+- **quattro righe per schermata e non una di più.** Ogni riga aggiunta
+  spingeva qualcosa fuori;
+- **frecce ‹ › in fondo**, perché la sfogliata verso destra sull'orologio la
+  prende il sistema per uscire dall'app e indietro non si tornava. Chiesto da
+  lui: in palestra non fa sempre gli esercizi nell'ordine della scheda. Il
+  numero di pagina sta fra le due frecce, non più in cima.
+- `vaiA()` è **l'unico posto da cui si cambia pagina** (frecce, sfogliata,
+  avanzamento automatico): ferma il recupero e salva dove sei. Dalla
+  schermata della seduta rimasta indietro non si sfoglia via, o un
+  allenamento intero sparirebbe con un dito storto.
+- **Lo schermo resta acceso solo mentre scorre il recupero** (`FLAG_KEEP_SCREEN_ON`
+  messo in `avviaTimer()` e tolto in `fermaTimer()`). Prima era acceso per tutto
+  il tempo che l'app era aperta e svuotava la batteria in una seduta: "questo non
+  me lo posso permettere". Durante il recupero serve, è l'unico momento in cui
+  guardi senza toccare.
+- **La pagina in cui sei viene salvata** insieme alla seduta: se il sistema
+  chiude l'app quando lo schermo si spegne, riaprendola torni sull'esercizio
+  che stavi facendo e non in testa alla scheda.
 - La seduta resta nelle SharedPreferences finché non è stata mandata: al cambio di
   giorno, se non è partita, viene riproposta invece che buttata.
+
+**Il 2026-09-29 l'app è stata installata davvero su un Pixel Watch 3** e tutta
+la catena ha funzionato: carichi dal telefono al polso, spunte, seduta di
+ritorno. L'installazione si fa dal computer con `adb` (opzioni sviluppatore →
+Debug tramite Wi-Fi → `adb pair` con codice, poi `adb connect`, poi `adb install`).
+Due cose che sono costate tempo e che ricapiteranno: **`adb connect` da solo non
+basta la prima volta**, ci vuole prima `adb pair` con il codice a sei cifre; e
+se l'orologio compare due volte in `adb devices` (una per indirizzo, una per
+nome) l'installazione va indirizzata con `adb -s <indirizzo> install`.
+La procedura completa è scritta in una pagina a parte:
+https://claude.ai/artifact/UF1fk7CdumhiUhYXkoMf6d
 
 **La compilazione la fa GitHub** (`.github/workflows/orologio.yml`) a ogni modifica
 dentro `orologio/`, e pubblica sempre allo stesso indirizzo:
