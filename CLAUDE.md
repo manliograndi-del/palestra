@@ -420,14 +420,53 @@ ne restano, da non perdere al prossimo ritocco:
 - La seduta resta nelle SharedPreferences finché non è stata mandata: al cambio di
   giorno, se non è partita, viene riproposta invece che buttata.
 
+### Da fare, chiesto il 2026-09-29 e rimandato da lui
+
+Sono tre cose che Manlio ha visto usando l'app davvero e che ha rimandato
+("alla prossima"), non perché non contino: quel giorno non aveva tempo di
+rifare l'installazione, che è l'unico modo di provare una modifica al polso.
+
+1. **I carichi che arrivano dal telefono devono sostituire tutto, non
+   aggiungersi.** Lui aveva un Adductor a 2,5 kg sull'orologio — un valore
+   messo col + quando il + c'era ancora — e "Manda i carichi all'app" non
+   l'ha corretto. La ragione sta in `carichiOrologioURL()`: manda **solo gli
+   esercizi per cui il telefono ha un numero maggiore di zero**, quindi un
+   esercizio senza peso non compare nel messaggio e `gestisciIntent()`, che
+   scrive solo le coppie che riceve, lascia intatto quello che c'era.
+   Finché sul polso c'erano − e +, un numero sbagliato si correggeva lì;
+   **da quando li abbiamo tolti non c'è più modo**, ed è un buco aperto dal
+   cambiamento del 2026-09-29. Il telefono conosce i pesi di tutte le
+   macchine, quindi il suo messaggio è la verità completa: `gestisciIntent()`
+   deve **svuotare `kg` prima di applicarlo**, così gli esercizi non nominati
+   tornano al trattino. **Attenzione a non farlo quando il messaggio è
+   malformato o vuoto**, o un tocco sbagliato azzererebbe tutti i carichi.
+   Resta un dubbio da sciogliere con lui: se quel 2,5 l'ha visto **dopo** la
+   disinstallazione di quel giorno, la causa è un'altra, perché disinstallare
+   porta via tutti i chili.
+2. **L'icona dell'app va rifatta con lo sfondo bianco**: adesso nel menu del
+   telefono "sta male".
+3. **La vibrazione di fine recupero se esce dall'app.** Oggi il recupero è un
+   `CountDownTimer`, che vive solo finché il processo è sveglio: uscendo
+   dall'app lo schermo si spegne, l'orologio può addormentarsi e la vibrazione
+   arriva tardi o non arriva. Lui ha detto che non ha motivo di uscire durante
+   il minuto, quindi **non farlo finché non lo chiede**; se servirà, la strada
+   è una sveglia di sistema (`AlarmManager`), non tenere acceso lo schermo.
+
 **Il 2026-09-29 l'app è stata installata davvero su un Pixel Watch 3** e tutta
 la catena ha funzionato: carichi dal telefono al polso, spunte, seduta di
 ritorno. L'installazione si fa dal computer con `adb` (opzioni sviluppatore →
 Debug tramite Wi-Fi → `adb pair` con codice, poi `adb connect`, poi `adb install`).
-Due cose che sono costate tempo e che ricapiteranno: **`adb connect` da solo non
-basta la prima volta**, ci vuole prima `adb pair` con il codice a sei cifre; e
+Tre cose sono costate tempo e ricapiteranno: **`adb connect` da solo non basta
+la prima volta**, ci vuole prima `adb pair` con il codice a sei cifre;
 se l'orologio compare due volte in `adb devices` (una per indirizzo, una per
-nome) l'installazione va indirizzata con `adb -s <indirizzo> install`.
+nome) l'installazione va indirizzata con `adb -s <indirizzo> install`; e
+**ogni APK compilato da GitHub è firmato con una chiave diversa**, quindi
+aggiornare sopra quello installato fallisce con `INSTALL_FAILED_UPDATE_INCOMPATIBLE`
+e bisogna disinstallare prima (`adb uninstall it.manlio.palestraorologio`),
+**perdendo i chili sul polso**, che vanno rimandati dal telefono. Si
+risolverebbe firmando sempre con la stessa chiave, ma vorrebbe dire mettere un
+file di firma in un repository pubblico: gliel'ho proposto il 2026-09-29 e non
+ha ancora deciso — **non farlo senza il suo sì**.
 La procedura completa è scritta in una pagina a parte:
 https://claude.ai/artifact/UF1fk7CdumhiUhYXkoMf6d
 
