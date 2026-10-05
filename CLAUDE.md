@@ -271,12 +271,47 @@ rimettere mano al pannello di Google. Per Drive le due app sono lo stesso progra
 si tengono separate **solo dal nome del file** (`palestra-backup.json` contro
 `diario-backup.json`). Se ne aggiungi una terza, dalle un nome diverso.
 Il permesso è `drive.file`: si tocca solo il file creato dall'app. Non allargarlo.
+**Il progetto Google che tiene la chiave si chiama `Palestra` (`palestra-510722`)
+dal 2026-10-05**; prima era `Diario`, e il nome ha contribuito a farglielo
+cancellare per sbaglio. Non cancellarlo e non lasciarglielo cancellare: è
+l'unico posto dove vive la chiave di tutte e due le app.
 L'identificativo in chiaro dentro `index.html` **non è una chiave segreta**: negli
 schemi da browser è pubblico e vale solo se chiamato dall'indirizzo autorizzato.
 
 In `sw.js` c'è una riga che fa **ignorare al service worker tutto ciò che non è del
 nostro indirizzo**: senza, una chiamata a Google andata storta si prenderebbe in cambio
 la pagina dell'app.
+
+**Il 2026-10-05 il collegamento a Drive si è rotto di colpo**, in tutte e due le
+app insieme: Google rispondeva `deleted_client`. Non era il codice — era sparita
+la chiave. Manlio, facendo pulizia dei progetti Google Cloud che gli sembravano
+avanzi inutili, aveva cancellato il progetto **Diario**, che si chiama così ma
+teneva in piedi **tutte e due** le app. Da lì in poi, la storia utile per la
+prossima volta:
+- il progetto si recupera da *Gestione risorse → Risorse in attesa di
+  eliminazione* (30 giorni di tempo), e la chiave da *Credenziali → Ripristina
+  credenziali eliminate*. **Tutti e due i ripristini sono riusciti e non è
+  servito a niente**: continuava a dire `deleted_client`;
+- il motivo è emerso provando a creare una chiave nuova nello stesso progetto:
+  *"Il brand che stai cercando di modificare è stato eliminato"*. Il **brand** è
+  la schermata di consenso, e quella il ripristino non la riporta indietro.
+  Senza, nessuna chiave di quel progetto funziona, nemmeno quelle ripristinate.
+  E ricrearla in un progetto ripristinato non riusciva;
+- **la via d'uscita è stata un progetto nuovo da zero** (`palestra-510722`),
+  dove tutto fila: abilitare Google Drive API, configurare il consenso, creare
+  il client. **Se ricapita, non perdere tempo con i ripristini: progetto nuovo
+  e via.** La procedura passo per passo è in una pagina a parte:
+  https://claude.ai/artifact/4eJoq5KhrgL7DEEnLFE5Sg
+- conseguenza da ricordare: con una chiave nuova il permesso `drive.file` non
+  dà più accesso al vecchio `palestra-backup.json`, che resta nel Drive di
+  Manlio ma invisibile all'app. L'app ne comincia uno nuovo. **Prima di
+  cambiare chiave, digli di scaricare il backup** — dal telefono e, se c'è,
+  anche il file da Drive.
+
+**Durante tutto il guasto la Palestra ha funzionato normalmente**: le sedute
+stanno nel telefono e l'orologio parla col telefono via Bluetooth. Si era fermata
+solo la copia automatica. Vale la pena dirglielo subito quando succede, perché la
+prima domanda che fa è se può andare ad allenarsi.
 
 **`GOOGLE_ACCOUNT` dice a Google quale account usare** (`hint`, su
 `initTokenClient` e ripetuto su `requestAccessToken`), dal 2026-09-10: quel
