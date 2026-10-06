@@ -308,6 +308,13 @@ prossima volta:
   cambiare chiave, digli di scaricare il backup** — dal telefono e, se c'è,
   anche il file da Drive.
 
+**In sospeso dal 2026-10-05: il Diario ha ancora dentro la chiave vecchia** e
+continua a dare `deleted_client`. Va sostituito il suo `GOOGLE_ID` con quello
+che sta qui in `index.html` — lo stesso identico valore, le due app tornano a
+condividere una chiave sola — e alzata la cache del suo `sw.js`. **È una
+modifica da fare nel repository del Diario, non qui.** Finché non è fatta, il
+Diario non salva su Drive; la Palestra sì.
+
 **Durante tutto il guasto la Palestra ha funzionato normalmente**: le sedute
 stanno nel telefono e l'orologio parla col telefono via Bluetooth. Si era fermata
 solo la copia automatica. Vale la pena dirglielo subito quando succede, perché la
