@@ -403,6 +403,27 @@ Note pratiche emerse quel giorno:
   installata sulla schermata Home;
 - Chrome chiede con quale app aprire `palestra://salute`: è *Palestra polso*.
 
+**Scrivere non basta: Google Health deve avere il permesso di leggere**, ed è
+qui che Manlio si è arenato per un'ora credendo che non fosse passato niente.
+La prova sta in *Connessione Salute → Esercizio fisico → **Accesso***: sotto
+“scrittura” c'è *Palestra polso* (noi), sotto “lettura” ci deve essere *Google
+Health*. Se non c'è, in Google Health non si vede niente e sembra un guasto
+nostro. Si dà da **Google Health → Connessioni (in alto a sinistra) → App
+partner → Health Connect**, spuntando **“Dati su fitness e benessere”** e non
+“Riepiloghi salute personali”, che è la storia clinica e non c'entra niente.
+
+E soprattutto: alla fine di quel giro compare **“Accesso ai dati precedenti”**.
+**Va acceso**, altrimenti Google Health vede solo gli ultimi 30 giorni e tutte
+le sedute più vecchie restano invisibili pur essendo in Connessione Salute.
+È la spiegazione del “manca tutto agosto”.
+
+**Le calorie non le scriviamo noi** e non c'è motivo di cominciare: Manlio porta
+il Pixel Watch mentre si allena, quindi il consumo della seduta lo conta già
+l'orologio dal battito. Una nostra stima si sommerebbe a quella, e il totale
+del giorno verrebbe gonfiato. Per la stessa ragione le nostre attività hanno
+*Carico cardiaco 0*: non portano battito, e il carico cardiaco Google lo
+calcola da quello.
+
 ## La seduta che arriva dall'orologio
 
 Disegnata insieme a lui il 2026-08-24 e approvata schermata per schermata.
