@@ -570,6 +570,52 @@ ne restano, da non perdere al prossimo ritocco:
 - La seduta resta nelle SharedPreferences finché non è stata mandata: al cambio di
   giorno, se non è partita, viene riproposta invece che buttata.
 
+**Il 2026-10-06 la pagina dell'esercizio è stata rifatta sul suo disegno.**
+Manlio ha fatto uno schizzo del quadrante tondo con il segmento in basso
+tagliato in due dalle frecce, e ha chiesto: via le scritte piccole di servizio
+("tieni premuto" e simili), le ripetizioni dentro i cerchietti al posto di
+1 2 3 4, via la riga "3 × 12" che a quel punto ripeteva, i chili più grossi e
+al centro. Cosa ne è rimasto nel codice:
+- **nei cerchietti c'è il numero di ripetizioni**, non il numero della serie.
+  Il numero della serie non serviva: la pastiglia è in posizione e si conta da
+  sola. Le ripetizioni invece sono l'unica cosa che in palestra devi sapere;
+- **i chili sono un solo pezzo di testo** (`kgGrandi()`), con il numero grande
+  e `kg` reso al 40% da uno `RelativeSizeSpan`. Non sono due righe: lui ha
+  chiesto `kg` "molto più piccolo", e due View separate non si allineano mai
+  bene sul tondo. `etichettaKg()` non c'è più;
+- **sotto c'è l'ora, in rosso e con i secondi** (`orologioDaPolso()` e
+  `oraDiAdesso()`, `HH:mm:ss`): l'ha chiesta per sapere l'ora senza uscire
+  dall'app. Va avanti con un `Handler` che ribatte ogni secondo (`ticOra`),
+  avviato in `onResume()` e **tolto in `onPause()`**; `mostra()` azzera
+  `oraVista` per prima cosa, altrimenti il battito scriverebbe dentro una
+  View già buttata via;
+- **le frecce sono due mezzelune che riempiono il segmento in basso**
+  (`barraFrecce()`, alta il 22% dello schermo, ancorata in basso, con una
+  linea di 1dp sopra e un divisorio di 1dp in mezzo). Sono bersagli enormi, ed
+  è il punto: si premono con le mani sudate. Il numero di pagina è sparito da
+  fra le frecce;
+- **una freccia spenta resta `isClickable`**: così il tocco se lo prende lei e
+  non arriva a quello che sta sopra. Senza, premere "avanti" sull'ultima
+  pagina spuntava una serie.
+Le misure sono tutte calcolate (`altezzaBarra()`, `spazioBarra()`), mai scritte
+a mano: vale la regola del 2026-09-29.
+
+**L'icona è nera con il bilanciere rosso** — `drawable/ic_sfondo.xml` (nero),
+`drawable/ic_pesi.xml` (il bilanciere) e `mipmap-anydpi-v26/ic_launcher.xml`
+che li mette insieme come icona adattiva, `monochrome` compreso. Il 2026-09-29
+aveva chiesto **lo sfondo bianco**; il 2026-10-06 ha cambiato idea — "tutta
+nera con i pesi rossi al centro" — ed è questa quella pubblicata. Il
+motivo per cui prima "stava male" era un altro: l'icona era di tipo vecchio
+(una `drawable` sola) e Android ci metteva sotto un piatto bianco di sistema.
+Il bilanciere sta dentro la zona sicura (66 su 108), o il ritaglio tondo del
+telefono gli mangia le estremità.
+
+**Quella pagina non l'ho mai vista su uno schermo vero**: le misure sono
+calcolate col conto, non guardate. Se dice che qualcosa esce dal bordo o sta
+scomodo, i numeri da toccare sono `altezzaBarra()`, la dimensione in
+`kgGrandi()` e il massimo di `titolo()` (abbassato da 20 a 18sp per far
+posto all'ora).
+
 ### Da fare, chiesto il 2026-09-29 e rimandato da lui
 
 Sono tre cose che Manlio ha visto usando l'app davvero e che ha rimandato
@@ -593,8 +639,8 @@ rifare l'installazione, che è l'unico modo di provare una modifica al polso.
    Resta un dubbio da sciogliere con lui: se quel 2,5 l'ha visto **dopo** la
    disinstallazione di quel giorno, la causa è un'altra, perché disinstallare
    porta via tutti i chili.
-2. **L'icona dell'app va rifatta con lo sfondo bianco**: adesso nel menu del
-   telefono "sta male".
+2. ~~L'icona dell'app va rifatta con lo sfondo bianco~~ — **fatta il
+   2026-10-06**, ma nera con i pesi rossi: vedi qui sopra.
 3. **La vibrazione di fine recupero se esce dall'app.** Oggi il recupero è un
    `CountDownTimer`, che vive solo finché il processo è sveglio: uscendo
    dall'app lo schermo si spegne, l'orologio può addormentarsi e la vibrazione
@@ -619,6 +665,20 @@ file di firma in un repository pubblico: gliel'ho proposto il 2026-09-29 e non
 ha ancora deciso — **non farlo senza il suo sì**.
 La procedura completa è scritta in una pagina a parte:
 https://claude.ai/artifact/UF1fk7CdumhiUhYXkoMf6d
+
+Altre tre cose imparate reinstallando il 2026-10-06, da ripetere ogni volta:
+- **la porta cambia** ogni volta che spegne e riaccende *Debug tramite Wi-Fi*,
+  l'indirizzo no. Quindi il comando `adb connect` va riscritto con la porta che
+  l'orologio mostra **in quel momento** (quel giorno era 45539, il giorno prima
+  33855);
+- **i comandi con l'indirizzo di esempio dentro non si danno**. Il 2026-09-29
+  si è perso mezz'ora perché aveva copiato dalla mia pagina `192.168.1.47`
+  invece del suo `192.168.1.92`, e l'errore che esce (`cannot connect`) sembra
+  un guasto dell'orologio. Nella pagina della procedura ci sono dei
+  segnaposto da riempire, non indirizzi veri: tienili così;
+- **il file scaricato di nuovo non sovrascrive il vecchio**: Chrome lo chiama
+  `palestra-orologio(1).apk`, e `adb install palestra-orologio.apk` installa
+  di nuovo quello di prima. Digli di cancellare il vecchio prima di scaricare.
 
 **La compilazione la fa GitHub** (`.github/workflows/orologio.yml`) a ogni modifica
 dentro `orologio/`, e pubblica sempre allo stesso indirizzo:
