@@ -11,9 +11,14 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.RelativeSizeSpan
 import android.util.TypedValue
 import android.view.GestureDetector
 import android.view.Gravity
@@ -114,6 +119,27 @@ class MainActivity : Activity() {
     private var timer: CountDownTimer? = null
     private var restano = 0L
     private var avviso: String? = null
+
+    /* **L'orologio in fondo alla schermata**, chiesto il 2026-10-06: mentre ti
+       alleni l'app copre tutto il quadrante, e senza questo per sapere che ore
+       sono dovevi uscire. Ha i secondi perché è anche il modo di cronometrare
+       un recupero a occhio quando non usi il timer.
+
+       Si aggiorna **solo quella scritta**, una volta al secondo, e **solo
+       mentre l'app è davanti**: ridisegnare tutta la schermata ogni secondo
+       sarebbe stato uno spreco, e farlo a schermo spento peggio. Parte in
+       onResume e si ferma in onPause. */
+    private var oraVista: TextView? = null
+    private val battito = Handler(Looper.getMainLooper())
+    private val ticOra = object : Runnable {
+        override fun run() {
+            oraVista?.text = oraDiAdesso()
+            battito.postDelayed(this, 1000L)
+        }
+    }
+
+    private fun oraDiAdesso(): String =
+        SimpleDateFormat("HH:mm:ss", Locale.ITALY).format(Date())
     /* Gli allenamenti in attesa di finire in Connessione Salute, e quanti ce
        ne sono andati: vivono solo il tempo di questa schermata. */
     private var saluteD: String? = null
@@ -237,6 +263,8 @@ class MainActivity : Activity() {
        dover ritoccare niente. */
     override fun onResume() {
         super.onResume()
+        battito.removeCallbacks(ticOra)
+        battito.post(ticOra)
         if (avviso == "salute-negato" && saluteD != null && Salute.disponibile() &&
             checkSelfPermission(PERMESSO_SALUTE) == PackageManager.PERMISSION_GRANTED) {
             saluteScrivi()
@@ -498,7 +526,7 @@ class MainActivity : Activity() {
         tv.maxLines = 1
         tv.setTextColor(Color.WHITE)
         tv.setTypeface(Typeface.DEFAULT_BOLD)
-        tv.setAutoSizeTextTypeUniformWithConfiguration(11, 20, 1, TypedValue.COMPLEX_UNIT_SP)
+        tv.setAutoSizeTextTypeUniformWithConfiguration(11, 18, 1, TypedValue.COMPLEX_UNIT_SP)
         val lp = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         /* Il nome sta in alto, dove il tondo si stringe: gli serve più bordo
@@ -508,10 +536,40 @@ class MainActivity : Activity() {
         return tv
     }
 
-    private fun etichettaKg(i: Int): String {
-        val v = kg[i] ?: return "— kg"
-        val t = if (v % 1f == 0f) v.toInt().toString() else String.format(Locale.ITALY, "%.1f", v)
-        return "$t kg"
+    /* I chili: il numero è quello che leggi da un metro, **"kg" è solo
+       l'unità** e non deve rubargli spazio — chiesto il 2026-10-06, scritto
+       meno della metà. Una riga sola con due dimensioni dentro, non due righe. */
+    private fun kgGrandi(i: Int): TextView {
+        val v = kg[i]
+        val numero = when {
+            v == null -> "\u2014"
+            v % 1f == 0f -> v.toInt().toString()
+            else -> String.format(Locale.ITALY, "%.1f", v)
+        }
+        val tutto = "$numero kg"
+        val sp = SpannableString(tutto)
+        sp.setSpan(RelativeSizeSpan(0.40f), numero.length, tutto.length,
+            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        val t = TextView(this)
+        t.text = sp
+        t.gravity = Gravity.CENTER
+        t.maxLines = 1
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
+        t.setTextColor(Color.WHITE)
+        t.setTypeface(Typeface.DEFAULT_BOLD)
+        val lp = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        lp.topMargin = dp(4f)
+        t.layoutParams = lp
+        return t
+    }
+
+    /* L'ora corrente, in fondo. Il riferimento resta in `oraVista` perché è
+       l'unica cosa che si aggiorna da sola, senza ridisegnare il resto. */
+    private fun orologioDaPolso(): TextView {
+        val t = testo(oraDiAdesso(), 15f, ROSSO, true, 8)
+        oraVista = t
+        return t
     }
 
     private fun pastiglie(i: Int): View {
@@ -653,6 +711,10 @@ class MainActivity : Activity() {
 
     private fun mostra() {
         radice.removeAllViews()
+        /* Le viste di prima sono appena state buttate: il riferimento
+           all'orologio non vale più finché non lo rimette la pagina che ce
+           l'ha. Senza questo, il battito scriverebbe su una vista morta. */
+        oraVista = null
         val c = colonna()
 
         /* La schermata di Google Health. Si vede **sul telefono**, non al
@@ -815,12 +877,13 @@ class MainActivity : Activity() {
         val e = SCHEDA[i]
         c.addView(titolo(e.nome.uppercase(Locale.ITALY)))
         if (e.cardio) {
-            c.addView(testo("${e.minuti} minuti", 26f, Color.WHITE, true, 8))
-            if (cardio.contains(i)) c.addView(testo("FATTO", 14f, ROSSO, true, 10))
+            c.addView(testo("${e.minuti} minuti", 24f, Color.WHITE, true, 6))
+            if (cardio.contains(i)) c.addView(testo("FATTO", 13f, ROSSO, true, 8))
         } else {
-            c.addView(testo(etichettaKg(i), 28f, Color.WHITE, true, 6))
+            c.addView(kgGrandi(i))
             c.addView(pastiglie(i))
         }
+        c.addView(orologioDaPolso())
         radice.addView(c)
         radice.addView(barraFrecce())
     }
@@ -848,6 +911,7 @@ class MainActivity : Activity() {
 
     override fun onPause() {
         super.onPause()
+        battito.removeCallbacks(ticOra)
         salva()
     }
 }

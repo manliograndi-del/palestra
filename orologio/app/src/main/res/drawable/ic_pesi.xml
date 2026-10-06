@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- I pesi, rossi, al centro. Stanno dentro il riquadro sicuro dell'icona
+     adattiva (il quadrato centrale da 66 su 108): da 22 a 86 in orizzontale,
+     quindi nessuna maschera di sistema può tagliarli, nemmeno quella tonda
+     dell'orologio. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#E4002B"
+        android:pathData="M30,44h8v20h-8z M70,44h8v20h-8z M40,50h28v8h-28z M22,48h6v12h-6z M80,48h6v12h-6z"/>
+</vector>
