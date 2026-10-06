@@ -532,9 +532,14 @@ class MainActivity : Activity() {
         val lato = (larghezzaUtile() / e.serie - dp(6f)).coerceIn(dp(24f), dp(46f))
         for (j in 0 until e.serie) {
             val p = TextView(this)
-            p.text = (j + 1).toString()
+            /* Dentro il cerchietto ci vanno **le ripetizioni**, non il numero
+               della serie: chiesto il 2026-10-06. Quante serie hai fatto si
+               vede dal colore — pieno rosso è fatta — e quante ne restano dal
+               numero di cerchietti. Il numero d'ordine non diceva niente che
+               non fosse già sotto gli occhi, e costava la riga "3 × 12". */
+            p.text = e.rip.toString()
             p.gravity = Gravity.CENTER
-            p.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (lato >= dp(38f)) 17f else 14f)
+            p.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (lato >= dp(38f)) 15f else 12f)
             p.setTypeface(Typeface.DEFAULT_BOLD)
             val fatto = j < n
             p.setTextColor(if (fatto) Color.WHITE else TENUE)
@@ -558,43 +563,70 @@ class MainActivity : Activity() {
        della sua larghezza, quindi e' abbondante. */
     private fun larghezzaUtile(): Int = resources.displayMetrics.widthPixels - dp(14f) * 2
 
-    /* Le frecce per spostarsi fra gli esercizi. Sull'orologio la sfogliata col
-       dito verso destra e' presa dal sistema per uscire dall'app, quindi
-       indietro non si poteva tornare: servono due tasti veri. In mezzo il
-       numero della pagina, che prima stava in cima e rubava una riga. */
-    private fun frecce(): View {
+    /* **La barra delle frecce**, disegnata da Manlio il 2026-10-06: una riga
+       orizzontale taglia il tondo vicino al fondo, e il mezzaluna che resta
+       sotto è diviso in due da una riga verticale — a sinistra indietro, a
+       destra avanti. Come i tasti di un cronometro.
+
+       È l'unico modo di avere bersagli grandi su uno schermo tondo: lì sotto
+       non ci sta niente altro, e due mezzi segmenti si prendono tutta la
+       larghezza invece di due cerchietti da 38dp in mezzo allo spazio.
+
+       L'altezza è il 22% dello schermo, non un numero fisso: a quella
+       profondità il cerchio è ancora largo l'83%, e i due simboli — che
+       stanno a un quarto e a tre quarti della larghezza — cadono dentro il
+       tondo con margine su tutti e due i formati del Pixel Watch 3.
+
+       **Le due metà prendono il tocco anche quando sono spente**, altrimenti
+       passerebbe sotto e spunterebbe una serie: toccare una freccia morta non
+       deve mai fare qualcos'altro. */
+    private fun altezzaBarra(): Int =
+        (resources.displayMetrics.heightPixels * 0.22f).toInt().coerceIn(dp(40f), dp(58f))
+
+    private fun barraFrecce(): View {
+        val fuori = LinearLayout(this)
+        fuori.orientation = LinearLayout.VERTICAL
+        val flp = FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, altezzaBarra())
+        flp.gravity = Gravity.BOTTOM
+        fuori.layoutParams = flp
+
+        val taglio = View(this)
+        taglio.setBackgroundColor(LINEA)
+        taglio.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(1f))
+        fuori.addView(taglio)
+
         val riga = LinearLayout(this)
         riga.orientation = LinearLayout.HORIZONTAL
-        riga.gravity = Gravity.CENTER
-        val lp = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        lp.topMargin = dp(6f)
-        riga.layoutParams = lp
+        riga.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
 
-        val indietro = freccia("\u2039", pagina > 0)
+        val indietro = mezzaFreccia("\u25c1", pagina > 0)
         indietro.setOnClickListener { if (pagina > 0) vaiA(pagina - 1) }
-        val conta = testo("${pagina + 1} / ${ultima + 1}", 12f, TENUE, true)
-        conta.layoutParams = LinearLayout.LayoutParams(dp(58f), ViewGroup.LayoutParams.WRAP_CONTENT)
-        val avanti = freccia("\u203a", pagina < ultima)
+
+        val divisorio = View(this)
+        divisorio.setBackgroundColor(LINEA)
+        divisorio.layoutParams = LinearLayout.LayoutParams(
+            dp(1f), ViewGroup.LayoutParams.MATCH_PARENT)
+
+        val avanti = mezzaFreccia("\u25b7", pagina < ultima)
         avanti.setOnClickListener { if (pagina < ultima) vaiA(pagina + 1) }
 
-        riga.addView(indietro); riga.addView(conta); riga.addView(avanti)
-        return riga
+        riga.addView(indietro); riga.addView(divisorio); riga.addView(avanti)
+        fuori.addView(riga)
+        return fuori
     }
 
-    private fun freccia(segno: String, attiva: Boolean): TextView {
+    private fun mezzaFreccia(segno: String, attiva: Boolean): TextView {
         val b = TextView(this)
         b.text = segno
         b.gravity = Gravity.CENTER
-        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
-        b.setTypeface(Typeface.DEFAULT_BOLD)
+        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
         b.setTextColor(if (attiva) Color.WHITE else LINEA)
-        val sf = android.graphics.drawable.GradientDrawable()
-        sf.shape = android.graphics.drawable.GradientDrawable.OVAL
-        sf.setColor(Color.TRANSPARENT)
-        sf.setStroke(dp(2f), if (attiva) LINEA else Color.TRANSPARENT)
-        b.background = sf
-        b.layoutParams = LinearLayout.LayoutParams(dp(38f), dp(38f))
+        b.isClickable = true
+        b.layoutParams = LinearLayout.LayoutParams(
+            0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
         return b
     }
 
@@ -611,6 +643,12 @@ class MainActivity : Activity() {
         c.layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         return c
+    }
+
+    /* Dove c'è la barra delle frecce il contenuto si tiene alla larga, o le
+       finirebbe sopra: il centro della colonna si alza di conseguenza. */
+    private fun spazioBarra(c: LinearLayout) {
+        c.setPadding(c.paddingLeft, c.paddingTop, c.paddingRight, altezzaBarra() + dp(6f))
     }
 
     private fun mostra() {
@@ -712,24 +750,29 @@ class MainActivity : Activity() {
                ci fosse. Quindi numeri più piccoli, una riga di riepilogo sola,
                e la riga dell'esito al posto di quella del cardio invece che in
                aggiunta. La freccia per tornare indietro resta in fondo. */
+            spazioBarra(c)
             val n = totaliFatte()
-            c.addView(testo(if (mandata) "MANDATA" else "FINITA", 11f, ROSSO, true))
-            c.addView(testo("$n/${totaliSerie()}", 30f, Color.WHITE, true, 2))
+            c.addView(testo("$n/${totaliSerie()}", 26f, Color.WHITE, true))
+            /* Una riga sola per lo stato, perché con la barra delle frecce in
+               fondo lo spazio è quello che è: l'esito di un invio prende il
+               posto del riepilogo invece di aggiungersi, e "già mandata" dice
+               quello che prima diceva l'etichetta in cima. */
             c.addView(testo(when (avviso) {
                 "invio" -> "sto mandando…"
                 "mandata" -> "arrivata al telefono"
                 "niente" -> "non c'è niente da mandare"
                 "errore" -> "non ci sono riuscito"
                 else ->
-                    if (cardio.isEmpty()) "nessun cardio"
+                    if (mandata) "già mandata al telefono"
+                    else if (cardio.isEmpty()) "nessun cardio"
                     else "${cardio.size} " + (if (cardio.size == 1) "blocco di cardio" else "blocchi di cardio")
-            }, 11f, if (avviso == "errore") ROSSO else TENUE, false, 2))
+            }, 11f, if (avviso == "errore") ROSSO else TENUE, false, 3))
 
             val t = tasto(if (mandata) "Manda di nuovo" else "Manda al telefono", true)
             t.setOnClickListener { manda() }
             val lp = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            lp.topMargin = dp(10f)
+            lp.topMargin = dp(8f)
             lp.gravity = Gravity.CENTER_HORIZONTAL
             t.layoutParams = lp
             c.addView(t)
@@ -746,39 +789,40 @@ class MainActivity : Activity() {
             az.layoutParams = alp
             c.addView(az)
 
-            c.addView(frecce())
             radice.addView(c)
+            radice.addView(barraFrecce())
             return
         }
 
-        /* La pagina di un esercizio, dall'alto: il nome, una riga sola con
-           serie, ripetizioni e chili, le pastiglie grandi al centro, le frecce
-           in fondo. Quattro righe e basta — ogni riga in più spingeva qualcosa
-           oltre il bordo tondo. I chili qui si leggono soltanto: si cambiano
-           dal telefono, con "Manda i carichi all'app". */
+        /* **La pagina di un esercizio, rifatta il 2026-10-06 su un disegno suo.**
+           Tre cose sole: il nome, i chili grossi al centro, i cerchietti delle
+           serie col numero di ripetizioni dentro. In fondo la barra delle
+           frecce.
+
+           Sono sparite tutte le scritte piccole di istruzioni — "tieni premuto
+           per togliere", "tocca per spuntare", "i chili arrivano dal telefono":
+           erano spiegazioni per la prima volta, e lui l'app la usa da un mese.
+           Occupavano la riga che serviva ai chili per essere leggibili in piedi
+           con le mani sudate. **Non rimetterle.**
+
+           È sparita anche la riga "3 × 12": le ripetizioni adesso stanno dentro
+           i cerchietti, e quante serie siano lo dice il numero di cerchietti.
+
+           I chili qui si leggono soltanto: si cambiano dal telefono, con
+           "Manda i carichi all'app". */
+        spazioBarra(c)
         val i = pagina
         val e = SCHEDA[i]
         c.addView(titolo(e.nome.uppercase(Locale.ITALY)))
         if (e.cardio) {
-            c.addView(testo("${e.minuti} minuti", 15f, ROSSO, true, 6))
-            val fatto = cardio.contains(i)
-            c.addView(testo(if (fatto) "FATTO" else "tocca quando l'hai fatto",
-                14f, if (fatto) ROSSO else TENUE, fatto, 14))
-            c.addView(testo(if (fatto) "tieni premuto per togliere" else " ", 10f, TENUE, false, 6))
+            c.addView(testo("${e.minuti} minuti", 26f, Color.WHITE, true, 8))
+            if (cardio.contains(i)) c.addView(testo("FATTO", 14f, ROSSO, true, 10))
         } else {
-            c.addView(testo("${e.serie} × ${e.rip}  ·  ${etichettaKg(i)}", 13f, TENUE, false, 6))
+            c.addView(testo(etichettaKg(i), 28f, Color.WHITE, true, 6))
             c.addView(pastiglie(i))
-            val n = fatteEs(i)
-            c.addView(testo(
-                when {
-                    kg[i] == null -> "i chili arrivano dal telefono"
-                    n >= e.serie -> "finito"
-                    n > 0 -> "tieni premuto per togliere"
-                    else -> "tocca per spuntare"
-                }, 10f, TENUE, false, 6))
         }
-        c.addView(frecce())
         radice.addView(c)
+        radice.addView(barraFrecce())
     }
 
     private fun tasto(t: String, pieno: Boolean): TextView {
