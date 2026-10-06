@@ -417,12 +417,22 @@ E soprattutto: alla fine di quel giro compare **“Accesso ai dati precedenti”
 le sedute più vecchie restano invisibili pur essendo in Connessione Salute.
 È la spiegazione del “manca tutto agosto”.
 
-**Le calorie non le scriviamo noi** e non c'è motivo di cominciare: Manlio porta
-il Pixel Watch mentre si allena, quindi il consumo della seduta lo conta già
-l'orologio dal battito. Una nostra stima si sommerebbe a quella, e il totale
-del giorno verrebbe gonfiato. Per la stessa ragione le nostre attività hanno
-*Carico cardiaco 0*: non portano battito, e il carico cardiaco Google lo
-calcola da quello.
+**Le calorie non le scriviamo noi**: le misura l'orologio dal battito, e una
+nostra stima si sommerebbe a quella gonfiando il totale del giorno. Per la
+stessa ragione le nostre attività hanno *Carico cardiaco 0*: non portano
+battito, e il carico cardiaco Google lo calcola da quello.
+
+**Ma c'è una condizione, scoperta il 2026-10-06 e da non dimenticare**: l'orologio
+conta la palestra **solo se Manlio avvia l'allenamento dal polso**. Senza, giudica
+dal movimento, e i pesi per lui sono quasi come stare seduti — nessun passo, battito
+che sale a tratti. Lui se n'era accorto da solo: "ieri allenamento molto duro e non
+l'ha contato per nulla", e aveva ragione. (Avevo provato a spiegarlo con la differenza
+fra un giorno di palestra e la domenica, ma il confronto non reggeva: domenica era
+bassa perché non era uscito di casa. **Lo scarto fra i suoi giorni è fatto dai passi**,
+e una seduta di pesi ci sparisce dentro.)
+**Scelta sua, quel giorno: avvia l'allenamento sull'orologio.** Quindi non si tocca
+niente qui, e **non si comincino a scrivere calorie** senza prima chiedergli se ha
+smesso di usare il modo allenamento — altrimenti si sommano.
 
 ## La seduta che arriva dall'orologio
 
