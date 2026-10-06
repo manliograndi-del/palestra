@@ -223,7 +223,23 @@ class MainActivity : Activity() {
                 "manca" -> "salute-vecchio"
                 else -> "salute-errore"
             }
-            saluteD = null
+            if (errore == null) saluteD = null
+            mostra()
+        }
+    }
+
+    /* **La via d'uscita se la finestra del permesso non compare.** Su
+       Android 14 i permessi di salute li gestisce Connessione Salute, e non
+       e' detto che la richiesta normale apra una finestra: puo' tornare
+       negata senza chiedere niente. In quel caso la schermata offre di
+       aprire Connessione Salute, dove il permesso si da' a mano; quando si
+       torna qui, se adesso c'e', si riprende da dove si era fermato senza
+       dover ritoccare niente. */
+    override fun onResume() {
+        super.onResume()
+        if (avviso == "salute-negato" && saluteD != null && Salute.disponibile() &&
+            checkSelfPermission(PERMESSO_SALUTE) == PackageManager.PERMISSION_GRANTED) {
+            saluteScrivi()
             mostra()
         }
     }
@@ -619,12 +635,30 @@ class MainActivity : Activity() {
                     if (saluteN == 1) "attivit\u00e0 scritta in Connessione Salute"
                     else "attivit\u00e0 scritte in Connessione Salute"
                 "salute-niente" -> "non c'era niente da scrivere"
-                "salute-negato" -> "senza il permesso non posso scriverle"
+                "salute-negato" -> "serve il permesso: daglielo e torna qui"
                 "salute-vecchio" -> "questo telefono non ha Connessione Salute"
                 else -> "non ci sono riuscito"
             }, 11f, TENUE, false, 2))
 
-            val t = tasto("Torna alla Palestra", true)
+            if (avviso == "salute-negato") {
+                val perm = tasto("Apri Connessione Salute", true)
+                perm.setOnClickListener {
+                    try {
+                        startActivity(Intent("android.health.connect.action.MANAGE_HEALTH_PERMISSIONS")
+                            .putExtra(Intent.EXTRA_PACKAGE_NAME, packageName)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    } catch (e: Exception) { avviso = "salute-errore"; mostra() }
+                }
+                val plp = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                plp.topMargin = dp(12f)
+                plp.gravity = Gravity.CENTER_HORIZONTAL
+                perm.layoutParams = plp
+                c.addView(perm)
+            }
+
+            val t = tasto(if (avviso == "salute-negato") "Lascia stare" else "Torna alla Palestra",
+                          avviso != "salute-negato")
             t.setOnClickListener {
                 avviso = null
                 try {
