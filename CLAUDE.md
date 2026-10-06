@@ -102,7 +102,12 @@ Se Manlio dice che la scheda è cambiata, modifica `SCHEDA` e ricontrolla i tota
   arriva un numero già pronto. `minCardio()` lo calcola, `completaIndice()` lo
   riempie una volta sola per le sedute vecchie (aggiunge un campo, non tocca altro).
   **Non toglierlo**: senza, il pannello Palestra del Diario conterebbe solo i pesi.
-- `palestra.s.YYYY-MM-DD` → `{giorno, fatte:{"i-j":true}, pesi, cardio, volume}`
+- `palestra.s.YYYY-MM-DD` → `{giorno, fatte:{"i-j":true}, pesi, cardio, volume, ora, fine}`
+  `ora` e `fine` sono gli istanti della prima e dell'ultima spunta, aggiunti il
+  2026-10-06. **Non servono a niente dentro l'app**: li vuole Google Health, che un
+  allenamento senza orario non sa dove metterlo. Nelle sedute di prima non ci sono e
+  si ripiega su `SALUTE_ORA`. Sono due campi in più, non cambiano niente di quello
+  che c'era.
 
 `fatte` usa la chiave `"<indice esercizio>-<numero serie>"`, e `cardio` l'indice secco.
 Se riordini gli esercizi dentro `SCHEDA`, **le sedute passate diventano illeggibili**:
@@ -327,6 +332,65 @@ presente sul telefono, la scelta si salta. **Se un giorno cambia l'account con
 cui salva su Drive**, questa costante va cambiata (qui e nel Diario insieme,
 sono due copie identiche dello stesso valore).
 
+## Gli allenamenti in Google Health
+
+Chiesto il 2026-10-06: “così Salute saprebbe gli esercizi fatti”.
+
+**Com'è fatto il giro, e perché non può essere più corto.** Google Health — l'app
+che era Fitbit, quella che legge il Pixel Watch; **si chiama così dal 19 maggio
+2026** — non sa niente delle nostre chiavi: legge **Connessione Salute** (Health
+Connect), il magazzino di salute dentro Android, e di lì mostra gli allenamenti
+fatti da altre app. Scriverci si può solo da un'app Android:
+
+- **dalla pagina web no**: da un browser non esiste alcun modo di parlare con
+  Connessione Salute;
+- **dal polso no**: su Wear OS Connessione Salute **non esiste**. Tutte le app
+  fanno la stessa cosa — il polso manda al telefono e il telefono scrive.
+
+Resta l'APK della Palestra girando **sul telefono**, quello che già travasa i
+carichi. Quindi: la Palestra web impacchetta le sedute e apre
+`palestra://salute?v=1&d=...`, l'APK le scrive, Google Health le legge.
+Da Android 14 Connessione Salute è parte del sistema e si chiama diretta
+(`android.health.connect`): **è il motivo per cui l'app da polso continua ad
+avere una dipendenza sola**. Su Android 13 e precedenti era un'app a parte e
+servirebbe la libreria di Google: in quel caso l'APK non fa niente e lo dice.
+
+Ogni giornata di palestra diventa fino a **tre attività una dopo l'altra** —
+camminata, pesi, cyclette — perché è così che Salute capisce il cardio, e perché
+**due attività sovrapposte le rifiuta**. Il messaggio è un record per attività:
+`tipo , data , istante di inizio , minuti , serie , volume` (tipo: `c`
+camminata, `p` pesi, `b` cyclette). `saluteRecord()` e `saluteURL()` lo
+costruiscono, `Salute.kt` lo legge.
+
+**Il segnaposto è `palestra-<data>-<tipo>`** (`clientRecordId`), e dipende dalla
+data, **non dall'orario**: rimandare gli stessi allenamenti aggiorna i record di
+prima invece di sdoppiarli, quindi il pulsante si può premere quante volte si
+vuole. Se un giorno lo si legasse all'ora, un cambio di `SALUTE_ORA` creerebbe
+doppioni per ogni seduta vecchia.
+
+**Delle sedute vecchie non sappiamo l'ora**, e un allenamento senza orario Salute
+non lo accetta: si danno per fatte alle `SALUTE_ORA` (18:00). Da quel giorno le
+sedute nuove portano `ora` e `fine` veri, quindi l'orario è quello giusto; la
+durata dei pesi, dove gli orari mancano, è stimata in **due minuti per serie**
+(un minuto di recupero più uno di esecuzione). Se Manlio dice che in Salute gli
+allenamenti vecchi stanno all'ora sbagliata, si cambia `SALUTE_ORA` e si rimanda:
+i record si aggiornano, non raddoppiano.
+
+**Nell'APK il permesso è `android.permission.health.WRITE_EXERCISE` e basta**:
+scrivere. Leggere non serve e un permesso in più non si chiede. Insieme al
+permesso c'è `PermessiSalute`, una schermata che spiega perché l'app vuole quei
+dati: **senza, Connessione Salute non lascia nemmeno chiedere il permesso**, non
+è decorazione. I record vanno a lotti di cinquanta, perché anni di sedute sono
+centinaia di record e una scrittura sola così grossa non si sa se passa.
+
+Cosa **non** arriva in Salute: i chili per macchina. Non c'è un posto garantito
+dove metterli, e il volume totale finisce nelle note dei pesi. Il posto dei
+carichi resta la Palestra.
+
+Quello che l'APK fa per Salute **gira solo sul telefono**, quindi questa
+modifica si installa solo lì: **l'orologio può restare alla versione di prima**
+e i chili sul polso non si perdono.
+
 ## La seduta che arriva dall'orologio
 
 Disegnata insieme a lui il 2026-08-24 e approvata schermata per schermata.
@@ -390,6 +454,10 @@ Palestra sul telefono.
 - **Gli indici di `SCHEDA` devono restare identici** a quelli di `index.html`: il
   messaggio usa le stesse chiavi `indice-serie`. Se riordini di qua, riordina di là e
   alza `OROLOGIO_V` **da tutte e due le parti**.
+- **`Salute.kt` è la parte di Google Health**, e gira **solo sul telefono**: vedi
+  “Gli allenamenti in Google Health”. Non tocca niente di quello che si vede al
+  polso, e usa l'API di sistema di Android 14, non una libreria: la dipendenza
+  resta una sola.
 - **Lo stesso APK si installa anche sul telefono** (`uses-feature ... required="false"`).
   Sul telefono non c'è nessun polso a cui mandare la seduta, quindi apre la Palestra
   direttamente: è così che si prova tutta la catena senza orologio e senza cavi.

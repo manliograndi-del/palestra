@@ -67,6 +67,8 @@ import java.util.concurrent.Executors
 private const val OROLOGIO_V = 4
 private const val INDIRIZZO = "https://manliograndi-del.github.io/palestra/"
 private const val RECUPERO_SEC = 60L
+/* il numero con cui ci si riconosce la risposta al permesso di Salute */
+private const val CHIEDI_SALUTE = 7
 
 private class Es(val nome: String, val serie: Int, val rip: Int, val minuti: Int = 0) {
     val cardio: Boolean get() = serie == 0
@@ -112,6 +114,10 @@ class MainActivity : Activity() {
     private var timer: CountDownTimer? = null
     private var restano = 0L
     private var avviso: String? = null
+    /* Gli allenamenti in attesa di finire in Connessione Salute, e quanti ce
+       ne sono andati: vivono solo il tempo di questa schermata. */
+    private var saluteD: String? = null
+    private var saluteN = 0
 
     private val ultima: Int get() = SCHEDA.size   // l'ultima pagina è il riepilogo
 
@@ -158,7 +164,14 @@ class MainActivity : Activity() {
        telefono→polso, e va in quel senso una volta sola: i chili poi vivono di là. */
     private fun gestisciIntent(int: Intent?) {
         val u = int?.data ?: return
-        if (u.scheme != "palestra" || u.host != "carichi") return
+        if (u.scheme != "palestra") return
+        when (u.host) {
+            "carichi" -> carichiDalTelefono(u)
+            "salute" -> saluteDalTelefono(u)
+        }
+    }
+
+    private fun carichiDalTelefono(u: Uri) {
         val d = u.getQueryParameter("d") ?: return
         var n = 0
         d.split(",").forEach { coppia ->
@@ -181,6 +194,46 @@ class MainActivity : Activity() {
                     Intent(Intent.ACTION_VIEW).addCategory(Intent.CATEGORY_BROWSABLE).setData(u))
             } catch (e: Exception) { /* nessun orologio collegato: pazienza */ }
         }
+    }
+
+    /* Gli allenamenti che la Palestra web manda da palestra://salute, da
+       portare in Connessione Salute. Succede **solo sul telefono**: sul polso
+       Connessione Salute non esiste. Il grosso del lavoro sta in Salute.kt. */
+    private fun saluteDalTelefono(u: Uri) {
+        val d = u.getQueryParameter("d") ?: return
+        saluteD = d
+        saluteN = 0
+        if (!Salute.disponibile()) { avviso = "salute-vecchio"; return }
+        if (checkSelfPermission(PERMESSO_SALUTE) != PackageManager.PERMISSION_GRANTED) {
+            avviso = "salute-chiedo"
+            requestPermissions(arrayOf(PERMESSO_SALUTE), CHIEDI_SALUTE)
+            return
+        }
+        saluteScrivi()
+    }
+
+    private fun saluteScrivi() {
+        val d = saluteD ?: return
+        avviso = "salute-invio"
+        Salute.scrivi(this, d) { n, errore ->
+            saluteN = n
+            avviso = when (errore) {
+                null -> "salute-fatto"
+                "niente" -> "salute-niente"
+                "manca" -> "salute-vecchio"
+                else -> "salute-errore"
+            }
+            saluteD = null
+            mostra()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        codice: Int, permessi: Array<out String>, esiti: IntArray) {
+        super.onRequestPermissionsResult(codice, permessi, esiti)
+        if (codice != CHIEDI_SALUTE) return
+        if (esiti.isNotEmpty() && esiti[0] == PackageManager.PERMISSION_GRANTED) saluteScrivi()
+        else { avviso = "salute-negato"; mostra() }
     }
 
     /* ---------- memoria ---------- */
@@ -276,6 +329,7 @@ class MainActivity : Activity() {
 
     private fun tocco() {
         if (avviso == "vecchia") return          // lì decidono i due tasti
+        if (avviso?.startsWith("salute") == true) return   // lì c'è un tasto solo
         if (timer != null) { fermaTimer(); mostra(); return }
 
         if (pagina == ultima) return   // qui decidono i tasti, un tocco a vuoto non manda niente
@@ -546,6 +600,48 @@ class MainActivity : Activity() {
     private fun mostra() {
         radice.removeAllViews()
         val c = colonna()
+
+        /* La schermata di Google Health. Si vede **sul telefono**, non al
+           polso: è il telefono che apre palestra://salute. */
+        if (avviso?.startsWith("salute") == true) {
+            c.addView(testo("GOOGLE HEALTH", 11f, ROSSO, true))
+            val male = avviso == "salute-errore" || avviso == "salute-vecchio" ||
+                       avviso == "salute-negato"
+            c.addView(testo(when (avviso) {
+                "salute-invio", "salute-chiedo" -> "\u2026"
+                "salute-fatto" -> saluteN.toString()
+                else -> "\u2014"
+            }, 30f, if (male) ROSSO else Color.WHITE, true, 2))
+            c.addView(testo(when (avviso) {
+                "salute-chiedo" -> "sto chiedendo il permesso"
+                "salute-invio" -> "sto scrivendo\u2026"
+                "salute-fatto" ->
+                    if (saluteN == 1) "attivit\u00e0 scritta in Connessione Salute"
+                    else "attivit\u00e0 scritte in Connessione Salute"
+                "salute-niente" -> "non c'era niente da scrivere"
+                "salute-negato" -> "senza il permesso non posso scriverle"
+                "salute-vecchio" -> "questo telefono non ha Connessione Salute"
+                else -> "non ci sono riuscito"
+            }, 11f, TENUE, false, 2))
+
+            val t = tasto("Torna alla Palestra", true)
+            t.setOnClickListener {
+                avviso = null
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(INDIRIZZO))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                } catch (e: Exception) { /* nessun browser: resta qui */ }
+                mostra()
+            }
+            val tlp = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            tlp.topMargin = dp(12f)
+            tlp.gravity = Gravity.CENTER_HORIZONTAL
+            t.layoutParams = tlp
+            c.addView(t)
+            radice.addView(c)
+            return
+        }
 
         if (avviso == "vecchia") {
             c.addView(testo("SEDUTA DI PRIMA", 11f, ROSSO, true))

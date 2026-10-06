@@ -275,6 +275,7 @@ var S={
   msg:null, spia:"", focus:null, aperto:null, apertoS:null, export:"", importa:"",
   drive:{on:false,id:null,ultimo:null,rev:null}, driveStato:"",
   azzeraOk:false, annulla:null,
+  ora:null,           // quando e' cominciata la seduta di oggi (prima spunta)
   orologio:null       // la seduta arrivata dal polso, in attesa di conferma
 };
 
@@ -456,9 +457,16 @@ function salva(){
       var kg=Number(S.pesi[e.n])||0;
       for(var j=0;j<e.set;j++) if(S.fatte[i+"-"+j]) vol+=kg*e.rip;
     });
-    var ok=scrivi(K_S+S.data,{giorno:1,fatte:S.fatte,pesi:S.pesi,cardio:S.cardio,volume:vol});
-    var n=fatteN();
-    if(n===0 && Object.keys(S.cardio).length===0) delete S.indice[S.data];
+    /* **L'ora della prima e dell'ultima spunta.** Non serve a niente dentro
+       l'app: la vuole Google Health, che un allenamento senza orario non sa
+       dove metterlo. Per le sedute di prima del 2026-10-06 non c'e' e si
+       ripiega su un'ora convenuta (SALUTE_ORA); da qui in avanti e' quella
+       vera. Sono due campi aggiunti, non cambia niente di quello che c'era. */
+    var n=fatteN(), vuota=(n===0 && Object.keys(S.cardio).length===0);
+    if(!vuota && !S.ora) S.ora=Date.now();
+    var ok=scrivi(K_S+S.data,{giorno:1,fatte:S.fatte,pesi:S.pesi,cardio:S.cardio,volume:vol,
+                              ora:S.ora,fine:vuota?null:Date.now()});
+    if(vuota) delete S.indice[S.data];
     else S.indice[S.data]={giorno:1,serie:n,tot:totSerie(),volume:Math.round(vol),minC:minCardio(S.cardio,1)};
     ok=scrivi(K_IDX,S.indice)&&ok;
     salvaCfg();
@@ -550,6 +558,7 @@ function schermoAcceso(v){
 function caricaGiorno(){
   var s=leggi(K_S+S.data,null);
   S.fatte=(s&&s.fatte)||{}; S.pesi=(s&&s.pesi)||{}; S.cardio=(s&&s.cardio)||{};
+  S.ora=(s&&s.ora)||null;
 }
 /* Il giorno cambia anche mentre l'app è aperta. Prima ce ne accorgevamo solo al
    risveglio: una pagina lasciata aperta la sera scriveva l'allenamento del
@@ -715,6 +724,76 @@ function carichiOrologioURL(){
     if(isFinite(v)&&v>0) p.push(i+":"+v);
   });
   return p.length?("palestra://carichi?d="+p.join(",")):null;
+}
+
+/* ---------- gli allenamenti per Google Health ----------
+   Google Health (l'app che era Fitbit, quella che legge il Pixel Watch) non
+   sa niente delle nostre chiavi: legge **Connessione Salute**, il magazzino
+   di salute dentro Android. Da una pagina web non c'e' modo di scriverci, e
+   sul polso Connessione Salute non esiste nemmeno: l'unico che puo' farlo e'
+   l'APK della Palestra installato **sul telefono**. Quindi gli passiamo tutto
+   da palestra://salute e ci pensa lui.
+
+   Ogni giornata di palestra diventa fino a tre attivita' **una dopo l'altra**,
+   perche' e' cosi' che Salute capisce il cardio, e perche' due attivita'
+   sovrapposte le rifiuta:
+       camminata (tapis roulant)  ->  pesi  ->  cyclette
+   Un record per attivita', campi separati da virgola:
+       tipo , data , istante di inizio , minuti , serie , volume
+   dove tipo e' c = camminata, p = pesi, b = cyclette.
+
+   La data viaggia anche se l'istante di inizio la contiene gia': l'APK ne fa
+   il segnaposto (clientRecordId) che impedisce a Salute di sdoppiare un
+   allenamento gia' mandato. Dipendendo dalla data e non dall'orario resta lo
+   stesso anche se un domani l'ora cambia, e il record vecchio viene
+   aggiornato invece di raddoppiare: **il pulsante si puo' premere quante
+   volte si vuole**. */
+var SALUTE_ORA=18;   /* l'ora a cui mettere le sedute di cui non sappiamo l'orario vero */
+
+function saluteRecord(d,s){
+  var es=(SCHEDA[(s&&s.giorno)||1]||SCHEDA[1]).es;
+  var fatte=(s&&s.fatte)||{}, cardio=(s&&s.cardio)||{};
+  var serie=0; for(var k in fatte) if(fatte[k]) serie++;
+  var camm=0, bici=0;
+  for(var c in cardio){
+    if(!cardio[c]) continue;
+    var e=es[Number(c)]; if(!e||e.t!=="cardio") continue;
+    if(/tapis|cammin/i.test(e.n)) camm+=e.min||0; else bici+=e.min||0;
+  }
+  if(!serie&&!camm&&!bici) return [];
+  var a=d.split("-").map(Number);
+  var inizio=(s&&s.ora)?Number(s.ora):new Date(a[0],a[1]-1,a[2],SALUTE_ORA,0,0,0).getTime();
+  /* Quanto sono durati i pesi: un minuto di recupero piu' uno di esecuzione a
+     serie. Se la seduta ha gli orari veri — da oggi in poi li ha — si usa
+     quanto e' durata davvero, togliendo il cardio che sta prima e dopo. */
+  var pesiMin=serie*2;
+  if(s&&s.ora&&s.fine&&Number(s.fine)>Number(s.ora)){
+    var tot=Math.round((Number(s.fine)-Number(s.ora))/60000);
+    if(serie) pesiMin=Math.max(1,tot-camm-bici);
+  }
+  var out=[], q=inizio, vol=Math.round((s&&s.volume)||0);
+  function agg(tipo,min,n,v){
+    if(min<1) return;
+    out.push([tipo,d,q,min,n,v].join(","));
+    q+=min*60000;
+  }
+  agg("c",camm,0,0);
+  agg("p",pesiMin,serie,vol);
+  agg("b",bici,0,0);
+  return out;
+}
+
+function saluteURL(){
+  var r=[];
+  Object.keys(S.indice).sort().forEach(function(d){
+    var s=leggi(K_S+d,null);
+    if(s) r=r.concat(saluteRecord(d,s));
+  });
+  if(!r.length) return null;
+  /* Un tetto, perche' l'indirizzo non diventi sterminato dopo anni: si tengono
+     le piu' recenti, che sono quelle che Salute mostra. */
+  if(r.length>400) r=r.slice(r.length-400);
+  return "palestra://salute?v=1&d="+encodeURIComponent(r.join(";"));
 }
 
 /* ---------- render ---------- */
@@ -1010,6 +1089,12 @@ function vImpostazioni(){
   h+='<textarea class="campo export" data-in="importa" rows="3" placeholder="Incolla qui un backup"></textarea>'+
      '<button class="b2" data-az="importa">Ripristina</button></section>';
 
+  var nSal=Object.keys(S.indice).length;
+  h+='<section class="pannello"><div class="etichetta">Google Health</div>'+
+     '<div class="nota">Questo pulsante passa gli allenamenti a <strong>Connessione Salute</strong> del telefono, ed e\' da l\xec che <strong>Google Health</strong> (l\'app che era Fitbit) li legge e li mette fra i tuoi allenamenti. Serve l\'app della Palestra installata sul telefono. Puoi premerlo quante volte vuoi: quelli gi\xe0 mandati vengono aggiornati, non raddoppiano.</div>'+
+     '<div class="nota">Delle sedute vecchie non sappiamo a che ora le hai fatte, e un allenamento senza orario Salute non lo accetta: le metto alle '+SALUTE_ORA+':00. <strong>Da oggi in poi l\'ora \xe8 quella vera</strong>, presa dalla prima e dall\'ultima spunta.</div>'+
+     '<button class="b2" data-az="salute">'+(nSal?('Manda '+nSal+' '+(nSal===1?'allenamento':'allenamenti')+' a Salute'):'Manda gli allenamenti a Salute')+'</button></section>';
+
   h+='<section class="pannello"><div class="etichetta">App dell\'orologio</div>'+
      '<div class="nota">Se hai installato l\'app della Palestra da polso, questo pulsante le manda i carichi dell\'ultima volta: sul telefono li riceve subito, e se c\'è un orologio collegato glieli passa. Da fare una volta, e poi solo quando cambiano.</div>'+
      '<button class="b2" data-az="oro-carichi">Manda i carichi all\'app</button></section>';
@@ -1081,6 +1166,11 @@ document.body.addEventListener("click",function(ev){
   else if(az==="esporta"){ S.export=JSON.stringify(raccogli()); render(); }
   else if(az==="scarica"){ scarica(); }
   else if(az==="drive-collega"||az==="drive-salva"){ driveSalva(true); }
+  else if(az==="salute"){
+    var us=saluteURL();
+    if(!us){ S.msg="Non c'\u00e8 ancora nessun allenamento da mandare."; render(); }
+    else location.href=us;
+  }
   else if(az==="oro-carichi"){
     var uc=carichiOrologioURL();
     if(!uc){ S.msg="Non c'è ancora nessun carico segnato da mandare."; render(); }

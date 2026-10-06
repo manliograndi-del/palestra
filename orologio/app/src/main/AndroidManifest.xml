@@ -6,6 +6,11 @@
     <uses-feature android:name="android.hardware.type.watch" android:required="false" />
 
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Scrivere gli allenamenti in Connessione Salute, da dove Google Health
+         li legge. Serve solo sul telefono: su Wear OS Connessione Salute non
+         esiste e il permesso resta lettera morta. Si scrive e basta: leggere
+         non ci serve, e un permesso in piu' non si chiede. -->
+    <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
@@ -37,6 +42,37 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="palestra" android:host="carichi" />
             </intent-filter>
+            <!-- gli allenamenti da portare in Connessione Salute: la Palestra
+                 web apre palestra://salute con le sedute dentro -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="palestra" android:host="salute" />
+            </intent-filter>
         </activity>
+
+        <!-- Connessione Salute non lascia nemmeno chiedere il permesso a
+             un'app che non ha una schermata da mostrare quando l'utente
+             domanda perche' vuole i suoi dati. Questa e' quella schermata. -->
+        <activity
+            android:name=".PermessiSalute"
+            android:exported="true"
+            android:label="Palestra"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+        <activity-alias
+            android:name=".PermessiSaluteUso"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
+            android:targetActivity=".PermessiSalute">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
     </application>
 </manifest>
