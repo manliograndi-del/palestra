@@ -1,6 +1,6 @@
 {
   "name": "Palestra — scheda allenamento",
-  "id": "/palestra/index.html",
+  "id": "/palestra/app",
   "short_name": "Palestra",
   "start_url": "./index.html",
   "scope": "./",

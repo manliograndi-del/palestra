@@ -611,6 +611,25 @@ piene (prima erano verdi). Titoli in maiuscolo pesante, pulsanti a pastiglia
 (`border-radius:99px`), riquadri a 16px, barra in basso con la voce attiva su fondo
 rosso pieno.
 
+**Il 2026-10-06 Chrome si è impuntato a dire che la Palestra era installata**
+quando Manlio l'aveva disinstallata: non riusciva più a rimetterla sulla
+schermata Home, e l'unica cosa che gli offriva era “Crea scorciatoia”, che fa
+l'icona col tondino di Chrome sopra. Un riavvio completo del telefono non è
+bastato, e in Impostazioni → App la voce *Palestra* non c'era davvero: era
+rimasto appeso **il ricordo dentro Chrome**, non l'app.
+
+Chrome riconosce un'app installata dal campo `id` del manifest, non
+dall'indirizzo. Quindi la via d'uscita è **cambiare quel nome d'identità**: con
+un `id` nuovo l'app diventa una che non ha mai visto e torna a proporre
+l'installazione vera. Da `"/palestra/index.html"` si è passati a
+`"/palestra/app"`. **Non tocca i dati**: le sedute stanno attaccate
+all'indirizzo del sito, non a quel nome, e un cambio di `id` non le sfiora.
+Se ricapita si può rifare, ma **una volta sola per volta**: cambiarlo mentre
+l'app è installata ne fa comparire due.
+Attenzione: il service worker serve il manifest **prima dalla cache**, quindi
+un `id` nuovo non si vede finché non si alza anche il numero di cache in
+`sw.js`. Le due cose vanno insieme.
+
 Nel `manifest.webmanifest` i colori della schermata di avvio erano rimasti
 quelli chiari del Diario fino al 2026-09-02: aprendo l'app installata lampeggiava
 un rettangolo color crema prima del nero. Adesso sono neri tutti e due. Se
