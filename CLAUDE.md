@@ -391,6 +391,18 @@ Quello che l'APK fa per Salute **gira solo sul telefono**, quindi questa
 modifica si installa solo lì: **l'orologio può restare alla versione di prima**
 e i chili sul polso non si perdono.
 
+**Provato davvero il 2026-10-06, e funziona**: 54 attività scritte in un colpo
+solo, e in Connessione Salute → Esercizio fisico compaiono come devono —
+“Camminata — Palestra” 18:00-18:15, poi “Allenamento di forza · Palestra” con
+sotto “27 serie · 12380 kg sollevati”. Le note dei pesi si vedono, quindi quel
+posto per serie e volume è buono. I giorni in cui non aveva spuntato la
+cyclette non hanno la terza attività: la seduta arriva com'era, non inventata.
+
+Note pratiche emerse quel giorno:
+- il travaso si fa dalla Palestra **aperta nel browser**, non serve che sia
+  installata sulla schermata Home;
+- Chrome chiede con quale app aprire `palestra://salute`: è *Palestra polso*.
+
 ## La seduta che arriva dall'orologio
 
 Disegnata insieme a lui il 2026-08-24 e approvata schermata per schermata.
